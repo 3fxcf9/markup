@@ -1,0 +1,12 @@
+(library
+ (name markup)
+ (public_name markup)
+ (modules markup parser)
+ (libraries str))
+
+(executable
+ (name main)
+ (modules main)
+ (libraries markup))
+
+

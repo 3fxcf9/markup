@@ -1,0 +1,17 @@
+parser link
+	pattern ^https?://
+	build_html
+		function(self, ctx)
+			local url = self.atoms[1]
+			local text = table.concat(self.atoms, " ", 2) or url
+			return string.format('<a %s href="%s">%s</a>', self.attr, url, text)
+		end
+	aftertext
+		function(self, ctx)
+			return table.concat(self.atoms, " ", 2)
+		end
+
+parser bold_parser
+	cue bold
+	aftertext $arg
+	build_html <strong>$arg</strong>
