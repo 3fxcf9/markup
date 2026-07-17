@@ -1,0 +1,23 @@
+parser test
+	cue test
+	build_html
+		lua
+		return "test 123"
+
+parser test2
+	cue test2
+	build_html lua return athis.arg
+
+parser link
+	pattern https?://
+	build_html
+		lua
+		local url = this.atoms[1]
+		local text = this.arg or url
+		return '<a href="' .. url .. '">' .. text .. '</a>'
+	aftertext $arg
+
+parser bold
+	cue bold
+	aftertext $arg
+	build_html <strong>$arg</strong>

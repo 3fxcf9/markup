@@ -1,8 +1,8 @@
 (library
  (name markup)
  (public_name markup)
- (modules markup parser)
- (libraries str))
+ (modules markup parser lua_eval)
+ (libraries str lua-ml))
 
 (executable
  (name main)
