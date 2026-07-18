@@ -1,4 +1,3 @@
-- first line in list item as content, not arg
 - allow parsers in markup files
 - `$atoms[i]` and `$matched_group[i]` in `ReplaceString`
 - `ctx` lua table

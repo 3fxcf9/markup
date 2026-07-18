@@ -35,3 +35,4 @@ parser list
 	cue -
 	build_html <li>$arg$content</li>
 	list_wrap <ul>$elements</ul>
+	arg_as_content

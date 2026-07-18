@@ -147,35 +147,34 @@ let rec parse_document (reg : Parser.registry) (lines : string list) :
       let level = indent_level line in
       let indented_lines, rest' = collect_indented_lines rest (level + 1) in
       let atoms = String.split_on_char ' ' line in
-      let collect_subparticles (parser : Parser.parser_def) : particle list =
-        if parser.raw then [ make_raw_particle indented_lines ]
-        else parse_document reg indented_lines
+
+      let collect_subparticles (parser : Parser.parser_def) :
+          string list * particle list =
+        let atoms, indented_lines =
+          if parser.arg_as_content then begin
+            ( [ List.hd atoms ],
+              (atoms |> List.tl |> String.concat " ") :: indented_lines )
+          end
+          else (atoms, indented_lines)
+        in
+
+        if parser.raw then (atoms, [ make_raw_particle indented_lines ])
+        else (atoms, parse_document reg indented_lines)
       in
+
       match try_parsers reg.parsers line with
       | `None -> parse_document reg rest'
       | `Cue parser ->
-          {
-            parser;
-            atoms;
-            matched_groups = None;
-            subparticles = collect_subparticles parser;
-          }
+          let atoms, subparticles = collect_subparticles parser in
+          { parser; atoms; matched_groups = None; subparticles }
           :: parse_document reg rest'
       | `Fallback parser ->
-          {
-            parser;
-            atoms = "*" :: atoms;
-            matched_groups = None;
-            subparticles = collect_subparticles parser;
-          }
+          let atoms, subparticles = collect_subparticles parser in
+          { parser; atoms = "*" :: atoms; matched_groups = None; subparticles }
           :: parse_document reg rest'
       | `Pattern (parser, groups) ->
-          {
-            parser;
-            atoms;
-            matched_groups = Some groups;
-            subparticles = collect_subparticles parser;
-          }
+          let atoms, subparticles = collect_subparticles parser in
+          { parser; atoms; matched_groups = Some groups; subparticles }
           :: parse_document reg rest')
 
 let evaluate_parser_value ?(replaced_text : string option = None) (p : particle)

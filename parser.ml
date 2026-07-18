@@ -8,6 +8,7 @@ type parser_def = {
   aftertext : parser_value option;
       (* None or the text to replace in the parent node *)
   raw : bool;
+  arg_as_content : bool;
   list_wrap : string option;
   build_html : parser_value option;
 }
@@ -20,6 +21,7 @@ let fallback_parser =
     list_wrap = None;
     build_html = Some (ReplaceString "<p>$arg</p>");
     raw = false;
+    arg_as_content = false;
   }
 
 let raw_parser =
@@ -28,8 +30,9 @@ let raw_parser =
     matching = `Cue "raw";
     aftertext = None;
     list_wrap = None;
-    build_html = Some (ReplaceString "$arg$content");
+    build_html = Some (ReplaceString "$arg");
     raw = false;
+    arg_as_content = false;
     (* does not matter here *)
   }
 
@@ -112,10 +115,24 @@ let parse_parser_definition (lines : string list) : parser_def option =
           | Some "true" -> true
           | _ -> false
         in
+        let arg_as_content =
+          match List.assoc_opt "arg_as_content" fields with
+          | Some "true" -> true
+          | _ -> false
+        in
         match matching_opt with
         | None -> None
         | Some matching ->
-            Some { name; matching; aftertext; list_wrap; build_html; raw })
+            Some
+              {
+                name;
+                matching;
+                aftertext;
+                list_wrap;
+                build_html;
+                raw;
+                arg_as_content;
+              })
 
 let rec parse_parser_file (lines : string list) : parser_def list =
   match lines with
