@@ -6,7 +6,6 @@ module I = Lua.MakeInterp (Lua.Parser.MakeStandard) (Lua.MakeEval (T) (C))
 let eval_lua (lua_func : string) (globals : string) =
   try
     let state = I.mk () in
-    print_endline globals;
     ignore (I.dostring state globals);
     let results = I.dostring state lua_func in
     let result =

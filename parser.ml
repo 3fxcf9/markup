@@ -7,6 +7,7 @@ type parser_def = {
   matching : [ `Cue of string | `Pattern of string ];
   aftertext : parser_value option;
       (* None or the text to replace in the parent node *)
+  raw : bool;
   list_wrap : string option;
   build_html : parser_value option;
 }
@@ -18,6 +19,18 @@ let fallback_parser =
     aftertext = None;
     list_wrap = None;
     build_html = Some (ReplaceString "<p>$arg</p>");
+    raw = false;
+  }
+
+let raw_parser =
+  {
+    name = "raw";
+    matching = `Cue "raw";
+    aftertext = None;
+    list_wrap = None;
+    build_html = Some (ReplaceString "$arg$content");
+    raw = false;
+    (* does not matter here *)
   }
 
 type registry = { parsers : parser_def list }
@@ -36,15 +49,19 @@ let print_parser (parser : parser_def) =
     | `Pattern p -> "pattern: " ^ p);
   print_parser_value_option "aftertext" parser.aftertext;
   print_parser_value_option "build_html" parser.build_html;
-  Option.iter (fun s -> Printf.printf "list_wrap: %s\n" s) parser.list_wrap
+  Option.iter (fun s -> Printf.printf "list_wrap: %s\n" s) parser.list_wrap;
+  if parser.raw then print_endline "raw"
 
-let rec parse_indented_string (lines : string list) : string * string list =
-  match lines with
-  | line :: rest when starts_with ~prefix:"\t\t" line ->
-      let content, lines_after = parse_indented_string rest in
+let rec parse_indented_string ?(first = true) (lines : string list) :
+    string * string list =
+  match (lines, first) with
+  | line :: rest, _ when starts_with ~prefix:"\t\t" line ->
+      let content, lines_after = parse_indented_string rest ~first:false in
       let unindented_line = sub line 2 (length line - 2) in
       (unindented_line ^ "\n" ^ content, lines_after)
-  | lines -> ("", lines)
+  (* default to flag *)
+  | lines, true -> ("true", lines)
+  | lines, _ -> ("", lines)
 
 let rec parse_parser_fields (lines : string list) : (string * string) list =
   match lines with
@@ -57,11 +74,9 @@ let rec parse_parser_fields (lines : string list) : (string * string) list =
         let value = matched_group 2 line in
         (key, value) :: parse_parser_fields rest
       else if string_match (regexp "\t\\([a-z_]+\\)") line 0 then
-        match parse_indented_string rest with
-        | "", _ -> []
-        | value, lines_after ->
-            let key = matched_group 1 line in
-            (key, value) :: parse_parser_fields lines_after
+        let value, lines_after = parse_indented_string rest in
+        let key = matched_group 1 line in
+        (key, value) :: parse_parser_fields lines_after
       else []
 
 let parse_parser_definition (lines : string list) : parser_def option =
@@ -90,10 +105,15 @@ let parse_parser_definition (lines : string list) : parser_def option =
         let aftertext = get_value "aftertext" in
         let build_html = get_value "build_html" in
         let list_wrap = List.assoc_opt "list_wrap" fields in
+        let raw =
+          match List.assoc_opt "raw" fields with
+          | Some "true" -> true
+          | _ -> false
+        in
         match matching_opt with
         | None -> None
         | Some matching ->
-            Some { name; matching; aftertext; list_wrap; build_html })
+            Some { name; matching; aftertext; list_wrap; build_html; raw })
 
 let rec parse_parser_file (lines : string list) : parser_def list =
   match lines with

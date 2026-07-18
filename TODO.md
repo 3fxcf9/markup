@@ -1,0 +1,6 @@
+- whole line aftertext if blank
+- allow parsers in markup files
+- `$atoms[i]` and `$matched_group[i]` in `ReplaceString`
+- `ctx` lua table
+- Write builtin parsers
+

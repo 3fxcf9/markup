@@ -1,4 +1,13 @@
+math
+	\sqrt 2
+
+code ocaml
+	function
+	  | [] -> []
+	  | hd::tl -> (hd+1)::tl
+
 test2 red text here
+	some text here
 
 this is a paragraph
 	bold paragraph

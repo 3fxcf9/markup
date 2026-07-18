@@ -2,11 +2,21 @@ parser test
 	cue test
 	build_html
 		lua
-		return "test 123"
+		return this.arg
 
 parser test2
 	cue test2
-	build_html lua return athis.arg
+	build_html lua return this.arg
+
+parser code
+	cue code
+	raw
+	build_html <pre><code class="lang-$arg">$content</code></pre>
+
+parser math
+	cue math
+	raw
+	build_html <code class="katex-display">$content</code>
 
 parser link
 	pattern https?://

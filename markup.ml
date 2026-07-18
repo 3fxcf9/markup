@@ -5,6 +5,16 @@ type particle = {
   subparticles : particle list;
 }
 
+let make_raw_particle (lines : string list) : particle =
+  let raw = lines |> String.concat "\n" |> String.split_on_char ' ' in
+  let cue = match Parser.raw_parser.matching with `Cue c -> c | _ -> "raw" in
+  {
+    parser = Parser.raw_parser;
+    atoms = cue :: raw;
+    matched_groups = None;
+    subparticles = [];
+  }
+
 let bold_cyan = Printf.sprintf "\027[36;1m%s\027[0m"
 
 let rec pp_particle ?(indent = 0) p =
@@ -76,6 +86,7 @@ let rec particle_lua_self (p : particle) =
   in
 
   let arg = p.atoms |> List.tl |> String.concat " " |> escape_lua_str in
+
   Printf.sprintf
     {|{
     name = %s,
@@ -109,7 +120,7 @@ let rec try_parsers (parsers : Parser.parser_def list) (line : string) =
   let open Str in
   match parsers with
   | ({ matching = `Cue cue; _ } as parser) :: rest
-    when String.starts_with ~prefix:(cue ^ " ") line ->
+    when String.split_on_char ' ' line |> List.hd = cue ->
       `Cue parser
   | ({ matching = `Pattern pattern; _ } as parser) :: rest
     when string_match (regexp ("^" ^ pattern)) line 0 ->
@@ -117,17 +128,6 @@ let rec try_parsers (parsers : Parser.parser_def list) (line : string) =
       `Pattern (parser, groups)
   | _ :: rest -> try_parsers rest line
   | [] -> `Fallback Parser.fallback_parser
-
-let parse_line (reg : Parser.registry) (line : string)
-    (subparticles : particle list) : particle option =
-  let atoms = String.split_on_char ' ' line in
-  match try_parsers reg.parsers line with
-  | `None -> None
-  | `Cue parser -> Some { parser; atoms; matched_groups = None; subparticles }
-  | `Fallback parser ->
-      Some { parser; atoms = "*" :: atoms; matched_groups = None; subparticles }
-  | `Pattern (parser, groups) ->
-      Some { parser; atoms; matched_groups = Some groups; subparticles }
 
 let rec collect_indented_lines (lines : string list) (level : int) :
     string list * string list =
@@ -146,10 +146,37 @@ let rec parse_document (reg : Parser.registry) (lines : string list) :
   | line :: rest -> (
       let level = indent_level line in
       let indented_lines, rest' = collect_indented_lines rest (level + 1) in
-      let children = parse_document reg indented_lines in
-      match parse_line reg line children with
-      | None -> parse_document reg rest'
-      | Some p -> p :: parse_document reg rest')
+      let atoms = String.split_on_char ' ' line in
+      let collect_subparticles (parser : Parser.parser_def) : particle list =
+        if parser.raw then [ make_raw_particle indented_lines ]
+        else parse_document reg indented_lines
+      in
+      match try_parsers reg.parsers line with
+      | `None -> parse_document reg rest'
+      | `Cue parser ->
+          {
+            parser;
+            atoms;
+            matched_groups = None;
+            subparticles = collect_subparticles parser;
+          }
+          :: parse_document reg rest'
+      | `Fallback parser ->
+          {
+            parser;
+            atoms = "*" :: atoms;
+            matched_groups = None;
+            subparticles = collect_subparticles parser;
+          }
+          :: parse_document reg rest'
+      | `Pattern (parser, groups) ->
+          {
+            parser;
+            atoms;
+            matched_groups = Some groups;
+            subparticles = collect_subparticles parser;
+          }
+          :: parse_document reg rest')
 
 let evaluate_parser_value (p : particle) ~(content : string)
     ~(parent_html : string) (pval : Parser.parser_value) : string =
@@ -227,9 +254,12 @@ let rec evaluate_particles (parent_html : string) (particles : particle list) :
         in
         (* aftertext children *)
         let html =
-          subparticles
-          |> List.filter (fun s -> Option.is_some s.parser.aftertext)
-          |> evaluate_particles html
+          match
+            subparticles
+            |> List.filter (fun s -> Option.is_some s.parser.aftertext)
+          with
+          | [] -> html
+          | l -> evaluate_particles html l
         in
         html
   in
