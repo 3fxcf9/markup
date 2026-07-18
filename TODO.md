@@ -2,4 +2,10 @@
 - `$atoms[i]` and `$matched_group[i]` in `ReplaceString`
 - `ctx` lua table
 - Write builtin parsers
+- parser extend
+- allow markup usage in build_html
+- allow writing in <head>
+- special parsers (eg. print_parsers)
+- references
+- include files
 - optimize ?
