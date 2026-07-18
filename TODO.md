@@ -1,4 +1,4 @@
-- whole line aftertext if blank
+- wrap list
 - allow parsers in markup files
 - `$atoms[i]` and `$matched_group[i]` in `ReplaceString`
 - `ctx` lua table

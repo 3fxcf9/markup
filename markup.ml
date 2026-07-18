@@ -178,15 +178,21 @@ let rec parse_document (reg : Parser.registry) (lines : string list) :
           }
           :: parse_document reg rest')
 
-let evaluate_parser_value (p : particle) ~(content : string)
-    ~(parent_html : string) (pval : Parser.parser_value) : string =
+let evaluate_parser_value ?(replaced_text : string option = None) (p : particle)
+    ~(content : string) ~(parent_html : string) (pval : Parser.parser_value) :
+    string =
   match pval with
   | Parser.ReplaceString expr ->
-      expr
-      |> String.replace_all ~sub:"$name" ~by:p.parser.name
-      |> String.replace_all ~sub:"$content" ~by:content
-      |> String.replace_all ~sub:"$arg"
-           ~by:(p.atoms |> List.tl |> String.concat " ")
+      let temp =
+        expr
+        |> String.replace_all ~sub:"$name" ~by:p.parser.name
+        |> String.replace_all ~sub:"$content" ~by:content
+        |> String.replace_all ~sub:"$arg"
+             ~by:(p.atoms |> List.tl |> String.concat " ")
+      in
+      replaced_text
+      |> Option.fold ~none:temp ~some:(fun r ->
+          String.replace_all ~sub:"$replaced" ~by:r temp)
       (* TODO: More *)
   | Parser.LuaFunction lua_func ->
       let escape_lua_str (s : string) : string =
@@ -206,11 +212,23 @@ let evaluate_parser_value (p : particle) ~(content : string)
             ctx = %s
             content = %s
             parent_html = %s
+            replaced = %s
           |}
           (particle_lua_self p) "nil" (escape_lua_str content)
           (escape_lua_str parent_html)
+          (Option.fold ~none:"nil" ~some:escape_lua_str replaced_text)
       in
       Lua_eval.eval_lua lua_func globals
+
+let replace_first ~substring ~new_text s =
+  let quoted = Str.quote substring in
+  let whole_word_re = Str.regexp ("\\b" ^ quoted ^ "\\b") in
+  let any_re = Str.regexp quoted in
+  try
+    ignore (Str.search_forward whole_word_re s 0);
+    Str.replace_first whole_word_re new_text s
+  with Not_found -> (
+    try Str.replace_first any_re new_text s with Not_found -> s)
 
 let rec evaluate_particles (parent_html : string) (particles : particle list) :
     string =
@@ -230,13 +248,14 @@ let rec evaluate_particles (parent_html : string) (particles : particle list) :
         let to_replace =
           evaluate_parser_value part ~content:"" ~parent_html aft
         in
+        let to_replace =
+          if String.is_empty to_replace then parent_html else to_replace
+        in
         let replace_with =
           evaluate_parser_value part ~content:"" ~parent_html build_html
+            ~replaced_text:(Some to_replace)
         in
-        String.replace_first
-          ~sub:(" " ^ to_replace ^ " ") (* Replace only entire atoms *)
-          ~by:(" " ^ replace_with ^ " ")
-          parent_html
+        replace_first ~substring:to_replace ~new_text:replace_with parent_html
     | {
         subparticles;
         parser = { aftertext; build_html = Some current_build_html; _ };
@@ -253,15 +272,8 @@ let rec evaluate_particles (parent_html : string) (particles : particle list) :
           evaluate_parser_value part ~content ~parent_html current_build_html
         in
         (* aftertext children *)
-        let html =
-          match
-            subparticles
-            |> List.filter (fun s -> Option.is_some s.parser.aftertext)
-          with
-          | [] -> html
-          | l -> evaluate_particles html l
-        in
-        html
+        subparticles
+        |> List.fold_left (fun acc p -> evaluate_particles acc [ p ]) html
   in
   List.map evaluate_particle particles |> String.concat " "
 
@@ -271,19 +283,14 @@ let parse input =
     |> String.split_on_char '\n'
   in
   let parsers = Parser.parse_parser_file parsers_content in
-  parsers |> List.iter Parser.print_parser;
-  print_endline "#######################################################";
 
+  (* parsers |> List.iter Parser.print_parser; *)
+  (* print_endline "#######################################################"; *)
   let reg : Parser.registry = { parsers } in
 
   let lines = String.split_on_char '\n' input in
   let document_particles = parse_document reg lines in
-  document_particles |> List.map pp_particle |> List.iter print_endline;
 
-  print_endline "\n#######################################################\n";
+  (* document_particles |> List.map pp_particle |> List.iter print_endline; *)
+  (* print_endline "\n#######################################################\n"; *)
   evaluate_particles "" document_particles
-(* match Parser.parse_parser_definition lines with *)
-(* | None -> "" *)
-(* | Some p -> *)
-(*     Parser.print_parser p; *)
-(*     "" *)

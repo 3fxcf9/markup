@@ -23,11 +23,10 @@ parser link
 	build_html
 		lua
 		local url = this.atoms[1]
-		local text = this.arg or url
-		return '<a href="' .. url .. '">' .. text .. '</a>'
+		return '<a href="' .. url .. '">' .. replaced .. '</a>'
 	aftertext $arg
 
 parser bold
 	cue bold
 	aftertext $arg
-	build_html <strong>$arg</strong>
+	build_html <strong>$replaced</strong>

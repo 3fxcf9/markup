@@ -1,3 +1,11 @@
+a paragraph with various words
+	https://wikipedia.org
+	bold with
+
+a paragraph with various words
+	https://wikipedia.org various
+	bold with
+
 math
 	\sqrt 2
 
@@ -5,13 +13,3 @@ code ocaml
 	function
 	  | [] -> []
 	  | hd::tl -> (hd+1)::tl
-
-test2 red text here
-	some text here
-
-this is a paragraph
-	bold paragraph
-	https://wikipedia.org is
-
-another paragraph with bold text
-	bold bold text
