@@ -230,6 +230,20 @@ let replace_first ~substring ~new_text s =
   with Not_found -> (
     try Str.replace_first any_re new_text s with Not_found -> s)
 
+let group_consecutive_by_name (particles : particle list) =
+  let rec aux groups current_group = function
+    | [] -> List.rev (List.rev current_group :: groups)
+    | p :: ps -> (
+        match current_group with
+        | last :: _ when last.parser.name = p.parser.name ->
+            aux groups (p :: current_group) ps
+        | _ -> aux (List.rev current_group :: groups) [ p ] ps)
+  in
+  match particles with [] -> [] | p :: ps -> aux [] [ p ] ps
+
+let evaluate_wrap (wrap_replacestring : string) (html : string) =
+  wrap_replacestring |> String.replace_all ~sub:"$elements" ~by:html
+
 let rec evaluate_particles (parent_html : string) (particles : particle list) :
     string =
   let evaluate_particle = function
@@ -273,9 +287,19 @@ let rec evaluate_particles (parent_html : string) (particles : particle list) :
         in
         (* aftertext children *)
         subparticles
+        |> List.filter (fun s -> Option.is_some s.parser.aftertext)
         |> List.fold_left (fun acc p -> evaluate_particles acc [ p ]) html
   in
-  List.map evaluate_particle particles |> String.concat " "
+  particles |> group_consecutive_by_name
+  |> List.map (fun group ->
+      match group with
+      | [ p ] -> evaluate_particle p
+      | { parser = { list_wrap = Some w; _ }; _ } :: _ ->
+          evaluate_wrap w (List.map evaluate_particle group |> String.concat "")
+      | _ :: _ -> List.map evaluate_particle group |> String.concat ""
+      | [] -> "")
+  |> String.concat ""
+(* List.map evaluate_particle particles |> String.concat " " *)
 
 let parse input =
   let parsers_content =

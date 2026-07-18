@@ -30,3 +30,8 @@ parser bold
 	cue bold
 	aftertext $arg
 	build_html <strong>$replaced</strong>
+
+parser list
+	cue -
+	build_html <li>$arg$content</li>
+	list_wrap <ul>$elements</ul>

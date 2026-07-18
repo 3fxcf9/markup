@@ -63,17 +63,19 @@ let rec parse_indented_string ?(first = true) (lines : string list) :
   | lines, true -> ("true", lines)
   | lines, _ -> ("", lines)
 
+let key_val_pattern = Str.regexp "\t\\([a-z_]+\\) \\(.+\\)"
+let key_pattern = Str.regexp "\t\\([a-z_]+\\)"
+
 let rec parse_parser_fields (lines : string list) : (string * string) list =
   match lines with
   | [] -> []
   | line :: rest ->
       let open Str in
-      let pattern = regexp "\t\\([a-z_]+\\) \\(.+\\)" in
-      if string_match pattern line 0 then
+      if string_match key_val_pattern line 0 then
         let key = matched_group 1 line in
         let value = matched_group 2 line in
         (key, value) :: parse_parser_fields rest
-      else if string_match (regexp "\t\\([a-z_]+\\)") line 0 then
+      else if string_match key_pattern line 0 then
         let value, lines_after = parse_indented_string rest in
         let key = matched_group 1 line in
         (key, value) :: parse_parser_fields lines_after
