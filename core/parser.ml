@@ -50,9 +50,6 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
         | None, rest' -> parse_document reg rest'
         | Some p, rest' ->
             reg.parsers <- reg.parsers @ [ p ];
-            print_endline "###################################";
-            reg.parsers |> List.iter print_parser;
-            print_endline "**********************************";
             parse_document reg rest')
       else begin
         let level = indent_level line in

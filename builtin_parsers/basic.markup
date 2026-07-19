@@ -1,3 +1,16 @@
+parser title
+	cue title
+	metadata $arg
+	build_html <h1>$arg</h1>
+
+parser date
+	cue date
+	metadata $arg
+
+parser author
+	cue author
+	metadata $arg
+
 parser test
 	cue test
 	build_html

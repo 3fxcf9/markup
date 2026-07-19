@@ -64,8 +64,20 @@ let replace_list_access (name : string) (list : string list) (s : string) :
       s
   with _ -> s
 
-let evaluate_parser_value ?(replaced_text : string option = None) (p : particle)
-    ~(content : string) ~(parent_html : string) (pval : parser_value) : string =
+let replace_assoc_list_access (name : string)
+    (assoc_list : (string * string) list) (s : string) : string =
+  let re = Printf.sprintf "\\$%s\\[\\([a-z0-9_]+\\)\\]" name |> Str.regexp in
+  try
+    Str.global_substitute re
+      (fun matched ->
+        let key = Str.matched_group 1 matched in
+        List.assoc key assoc_list)
+      s
+  with _ -> s
+
+let evaluate_parser_value ?(replaced_text : string option = None)
+    (reg : registry) (p : particle) ~(content : string) ~(parent_html : string)
+    (pval : parser_value) : string =
   match pval with
   | ReplaceString expr -> (
       try
@@ -75,6 +87,7 @@ let evaluate_parser_value ?(replaced_text : string option = None) (p : particle)
         |> String.replace_all ~sub:"$arg"
              ~by:(p.atoms |> List.tl |> String.concat " ")
         |> replace_list_access "atoms" p.atoms
+        |> replace_assoc_list_access "metadata" reg.metadata
         |> (p.matched_groups
            |> Option.fold ~none:Fun.id ~some:(fun grp ->
                replace_list_access "matched_groups" grp))
@@ -93,6 +106,12 @@ let evaluate_parser_value ?(replaced_text : string option = None) (p : particle)
           | c -> String.make 1 c)
         |> String.concat "" |> Printf.sprintf {|"%s"|}
       in
+      let metadata =
+        reg.metadata
+        |> List.map (fun (key, value) ->
+            Printf.sprintf "%s = %s" key (escape_lua_str value))
+        |> String.concat "," |> Printf.sprintf "{%s}"
+      in
       let globals =
         Printf.sprintf
           {|
@@ -101,10 +120,12 @@ let evaluate_parser_value ?(replaced_text : string option = None) (p : particle)
             content = %s
             parent_html = %s
             replaced = %s
+            metadata = %s
           |}
           (particle_lua_self p) "nil" (escape_lua_str content)
           (escape_lua_str parent_html)
           (Option.fold ~none:"nil" ~some:escape_lua_str replaced_text)
+          metadata
       in
       Lua_eval.eval_lua lua_func globals
 
@@ -132,41 +153,58 @@ let group_consecutive_by_name (particles : particle list) =
 let evaluate_wrap (wrap_replacestring : string) (html : string) =
   wrap_replacestring |> String.replace_all ~sub:"$elements" ~by:html
 
+let evaluate_metadata (reg : registry) (part : particle) ~(content : string)
+    ~(parent_html : string) (pval_opt : parser_value option) : unit =
+  pval_opt
+  |> Option.iter (fun pval ->
+      reg.metadata <-
+        ( part.parser.name,
+          evaluate_parser_value reg part ~content ~parent_html pval )
+        :: reg.metadata)
+
 let rec evaluate_particles (reg : registry) (parent_html : string)
     (particles : particle list) : string =
   let evaluate_particle p =
     let output =
       match p with
       (* No produced html *)
-      | { subparticles; parser = { build_html = None; _ }; _ } -> ""
+      | { subparticles; parser = { build_html = None; metadata; _ }; _ } as part
+        ->
+          evaluate_metadata reg part ~content:"" ~parent_html metadata;
+          ""
       (* Non-aftertext leaf *)
       | {
           subparticles = [];
-          parser = { aftertext = None; build_html = Some build_html; _ };
+          parser =
+            { aftertext = None; build_html = Some build_html; metadata; _ };
           _;
         } as part ->
-          evaluate_parser_value part ~content:"" ~parent_html build_html
+          evaluate_metadata reg part ~content:"" ~parent_html metadata;
+          evaluate_parser_value reg part ~content:"" ~parent_html build_html
       (* Aftertext leaf *)
       | {
           subparticles = [];
-          parser = { aftertext = Some aft; build_html = Some build_html; _ };
+          parser =
+            { aftertext = Some aft; build_html = Some build_html; metadata; _ };
           _;
         } as part ->
+          evaluate_metadata reg part ~content:"" ~parent_html metadata;
           let to_replace =
-            evaluate_parser_value part ~content:"" ~parent_html aft
+            evaluate_parser_value reg part ~content:"" ~parent_html aft
           in
           let to_replace =
             if String.is_empty to_replace then parent_html else to_replace
           in
           let replace_with =
-            evaluate_parser_value part ~content:"" ~parent_html build_html
+            evaluate_parser_value reg part ~content:"" ~parent_html build_html
               ~replaced_text:(Some to_replace)
           in
           replace_first ~substring:to_replace ~new_text:replace_with parent_html
       (* Node *)
       | {
           subparticles;
-          parser = { aftertext; build_html = Some current_build_html; _ };
+          parser =
+            { aftertext; build_html = Some current_build_html; metadata; _ };
           _;
         } as part ->
           (* regular children *)
@@ -175,9 +213,11 @@ let rec evaluate_particles (reg : registry) (parent_html : string)
             |> List.filter (fun s -> Option.is_none s.parser.aftertext)
             |> evaluate_particles reg ""
           in
+          evaluate_metadata reg part ~content ~parent_html metadata;
           (* the node itself *)
           let html =
-            evaluate_parser_value part ~content ~parent_html current_build_html
+            evaluate_parser_value reg part ~content ~parent_html
+              current_build_html
           in
           (* aftertext children *)
           subparticles

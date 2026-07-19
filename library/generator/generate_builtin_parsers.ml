@@ -46,6 +46,10 @@ let pp_parser_def oc p =
   pp_option pp_parser_value oc p.build_html;
   fprintf oc ";\n";
 
+  fprintf oc "    metadata = ";
+  pp_option pp_parser_value oc p.metadata;
+  fprintf oc ";\n";
+
   fprintf oc "  }"
 
 (* ---------- Main ---------- *)

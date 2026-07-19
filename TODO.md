@@ -5,6 +5,9 @@
 - optimize ?
 
 ### Parser syntax
+- metadata
+  - parser.metadata: parser_value
+  - mutable reg.metadata
 - allow markup usage in build_html
 - include files
 - references
