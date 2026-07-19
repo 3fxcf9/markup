@@ -15,29 +15,33 @@ let rec parse_indented_string ?(first = true) (lines : string list) :
 let key_val_pattern = Str.regexp "\t\\([a-z_]+\\) \\(.+\\)"
 let key_pattern = Str.regexp "\t\\([a-z_]+\\)"
 
-let rec parse_parser_fields (lines : string list) : (string * string) list =
+let rec parse_parser_fields (lines : string list) :
+    (string * string) list * string list =
   match lines with
-  | [] -> []
+  | [] -> ([], [])
   | line :: rest ->
       let open Str in
       if string_match key_val_pattern line 0 then
         let key = matched_group 1 line in
         let value = matched_group 2 line in
-        (key, value) :: parse_parser_fields rest
+        let assoc, rest' = parse_parser_fields rest in
+        ((key, value) :: assoc, rest')
       else if string_match key_pattern line 0 then
         let value, lines_after = parse_indented_string rest in
         let key = matched_group 1 line in
-        (key, value) :: parse_parser_fields lines_after
-      else []
+        let assoc, rest' = parse_parser_fields lines_after in
+        ((key, value) :: assoc, rest')
+      else ([], rest)
 
-let parse_parser_definition (lines : string list) : parser_def option =
+let parse_parser_definition (lines : string list) :
+    parser_def option * string list =
   match lines with
-  | [] -> None
-  | first_line :: rest -> (
-      if not @@ starts_with ~prefix:"parser " first_line then None
+  | [] -> (None, [])
+  | first_line :: rest ->
+      begin if not @@ starts_with ~prefix:"parser " first_line then (None, lines)
       else
         let name = trim (sub first_line 7 (length first_line - 7)) in
-        let fields = parse_parser_fields rest in
+        let fields, rest' = parse_parser_fields rest in
         let get_value key =
           List.assoc_opt key fields
           |> Option.map (fun x ->
@@ -67,24 +71,26 @@ let parse_parser_definition (lines : string list) : parser_def option =
           | _ -> false
         in
         match matching_opt with
-        | None -> None
+        | None -> (None, rest')
         | Some matching ->
-            Some
-              {
-                name;
-                matching;
-                aftertext;
-                list_wrap;
-                build_html;
-                raw;
-                arg_as_content;
-              })
+            ( Some
+                {
+                  name;
+                  matching;
+                  aftertext;
+                  list_wrap;
+                  build_html;
+                  raw;
+                  arg_as_content;
+                },
+              rest' )
+      end
 
 let rec parse_parser_file (lines : string list) : parser_def list =
   match lines with
   | [] -> []
   | line :: rest when String.starts_with ~prefix:"parser" line -> (
       match parse_parser_definition lines with
-      | None -> parse_parser_file rest
-      | Some p -> p :: parse_parser_file rest)
+      | None, rest' -> parse_parser_file rest'
+      | Some p, rest' -> p :: parse_parser_file rest')
   | _ :: rest -> parse_parser_file rest

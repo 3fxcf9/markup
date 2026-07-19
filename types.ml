@@ -105,4 +105,4 @@ let print_particle (p : particle) = pp_particle p |> print_endline
 
 (* ---------- REGISTRY ---------- *)
 
-type registry = { parsers : parser_def list }
+type registry = { mutable parsers : parser_def list }

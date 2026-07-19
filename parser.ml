@@ -44,36 +44,52 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
   match lines with
   | [] -> []
   | line :: rest when String.trim line = "" -> parse_document reg rest
-  | line :: rest -> (
-      let level = indent_level line in
-      let indented_lines, rest' = collect_indented_lines rest (level + 1) in
-      let atoms = String.split_on_char ' ' line in
+  | line :: rest ->
+      if String.starts_with ~prefix:"parser " line then (
+        match Markup_parser.parse_parser_definition lines with
+        | None, rest' -> parse_document reg rest'
+        | Some p, rest' ->
+            reg.parsers <- reg.parsers @ [ p ];
+            print_endline "###################################";
+            reg.parsers |> List.iter print_parser;
+            print_endline "**********************************";
+            parse_document reg rest')
+      else begin
+        let level = indent_level line in
+        let indented_lines, rest' = collect_indented_lines rest (level + 1) in
+        let atoms = String.split_on_char ' ' line in
 
-      let collect_subparticles (parser : parser_def) :
-          string list * particle list =
-        let atoms, indented_lines =
-          if parser.arg_as_content then begin
-            ( [ List.hd atoms ],
-              (atoms |> List.tl |> String.concat " ") :: indented_lines )
-          end
-          else (atoms, indented_lines)
+        let collect_subparticles (parser : parser_def) :
+            string list * particle list =
+          let atoms, indented_lines =
+            if parser.arg_as_content then begin
+              ( [ List.hd atoms ],
+                (atoms |> List.tl |> String.concat " ") :: indented_lines )
+            end
+            else (atoms, indented_lines)
+          in
+
+          if parser.raw then (atoms, [ make_raw_particle indented_lines ])
+          else (atoms, parse_document reg indented_lines)
         in
 
-        if parser.raw then (atoms, [ make_raw_particle indented_lines ])
-        else (atoms, parse_document reg indented_lines)
-      in
-
-      match try_parsers reg.parsers line with
-      | `None -> parse_document reg rest'
-      | `Cue parser ->
-          let atoms, subparticles = collect_subparticles parser in
-          { parser; atoms; matched_groups = None; subparticles }
-          :: parse_document reg rest'
-      | `Fallback parser ->
-          let atoms, subparticles = collect_subparticles parser in
-          { parser; atoms = "*" :: atoms; matched_groups = None; subparticles }
-          :: parse_document reg rest'
-      | `Pattern (parser, groups) ->
-          let atoms, subparticles = collect_subparticles parser in
-          { parser; atoms; matched_groups = Some groups; subparticles }
-          :: parse_document reg rest')
+        match try_parsers reg.parsers line with
+        | `None -> parse_document reg rest'
+        | `Cue parser ->
+            let atoms, subparticles = collect_subparticles parser in
+            { parser; atoms; matched_groups = None; subparticles }
+            :: parse_document reg rest'
+        | `Fallback parser ->
+            let atoms, subparticles = collect_subparticles parser in
+            {
+              parser;
+              atoms = "*" :: atoms;
+              matched_groups = None;
+              subparticles;
+            }
+            :: parse_document reg rest'
+        | `Pattern (parser, groups) ->
+            let atoms, subparticles = collect_subparticles parser in
+            { parser; atoms; matched_groups = Some groups; subparticles }
+            :: parse_document reg rest'
+      end

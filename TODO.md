@@ -1,11 +1,15 @@
-- allow parsers in markup files
-- `$atoms[i]` and `$matched_group[i]` in `ReplaceString`
-- `ctx` lua table
+### General
 - Write builtin parsers
-- parser extend
+  - in a bultin_parsers.markup file that will be bundled into the binary
+- special parsers (eg. print_parsers)
+- optimize ?
+
+### Parser syntax
 - allow markup usage in build_html
 - allow writing in <head>
-- special parsers (eg. print_parsers)
-- references
 - include files
-- optimize ?
+- references
+- `$atoms[i]` and `$matched_group[i]` in `ReplaceString`
+- `ctx` lua table
+  - important ?
+- parser extend

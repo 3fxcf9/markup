@@ -1,7 +1,7 @@
 (library
  (name markup)
  (public_name markup)
- (modules markup types parser interpreter markup_parser lua_eval)
+ (modules markup types parser interpreter markup_parser lua_eval generate_builtin_parsers)
  (libraries str lua-ml))
 
 (executable
