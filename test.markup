@@ -1,3 +1,12 @@
+parser aa
+	pattern a\(b+\)a
+	build_html @@$matched_groups[1]@@
+
+aa first second third
+aba first second third
+abba first second third
+abbba first second third
+
 - first
 	other line
 - second

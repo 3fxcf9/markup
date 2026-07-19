@@ -53,21 +53,35 @@ let rec particle_lua_self (p : particle) =
     (escape_lua_str p.parser.name)
     atoms_lua arg matched_groups_lua subparticles_lua
 
+let replace_list_access (name : string) (list : string list) (s : string) :
+    string =
+  let re = Printf.sprintf "\\$%s\\[\\([0-9]+\\)\\]" name |> Str.regexp in
+  try
+    Str.global_substitute re
+      (fun matched ->
+        let i = Str.matched_group 1 matched |> int_of_string in
+        List.nth list i)
+      s
+  with _ -> s
+
 let evaluate_parser_value ?(replaced_text : string option = None) (p : particle)
     ~(content : string) ~(parent_html : string) (pval : parser_value) : string =
   match pval with
-  | ReplaceString expr ->
-      let temp =
+  | ReplaceString expr -> (
+      try
         expr
         |> String.replace_all ~sub:"$name" ~by:p.parser.name
         |> String.replace_all ~sub:"$content" ~by:content
         |> String.replace_all ~sub:"$arg"
              ~by:(p.atoms |> List.tl |> String.concat " ")
-      in
-      replaced_text
-      |> Option.fold ~none:temp ~some:(fun r ->
-          String.replace_all ~sub:"$replaced" ~by:r temp)
-      (* TODO: More *)
+        |> replace_list_access "atoms" p.atoms
+        |> (p.matched_groups
+           |> Option.fold ~none:Fun.id ~some:(fun grp ->
+               replace_list_access "matched_groups" grp))
+        |> (replaced_text
+           |> Option.fold ~none:Fun.id ~some:(fun r ->
+               String.replace_all ~sub:"$replaced" ~by:r ~start:0))
+      with _ -> "REPLACESTRING ERROR" (* TODO: More *))
   | LuaFunction lua_func ->
       let escape_lua_str (s : string) : string =
         s |> String.to_seq |> List.of_seq

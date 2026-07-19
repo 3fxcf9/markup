@@ -9,7 +9,6 @@
 - allow writing in <head>
 - include files
 - references
-- `$atoms[i]` and `$matched_group[i]` in `ReplaceString`
 - `ctx` lua table
   - important ?
 - parser extend
