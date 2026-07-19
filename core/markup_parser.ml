@@ -60,6 +60,11 @@ let parse_parser_definition (lines : string list) :
         let aftertext = get_value "aftertext" in
         let build_html = get_value "build_html" in
         let list_wrap = List.assoc_opt "list_wrap" fields in
+        let head =
+          match List.assoc_opt "head" fields with
+          | Some "true" -> true
+          | _ -> false
+        in
         let raw =
           match List.assoc_opt "raw" fields with
           | Some "true" -> true
@@ -80,6 +85,7 @@ let parse_parser_definition (lines : string list) :
                   aftertext;
                   list_wrap;
                   build_html;
+                  head;
                   raw;
                   arg_as_content;
                 },

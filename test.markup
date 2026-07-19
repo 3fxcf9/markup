@@ -1,5 +1,6 @@
 parser aa
 	pattern a\(b+\)a
+	head
 	build_html @@$matched_groups[1]@@
 
 aa first second third

@@ -132,51 +132,62 @@ let group_consecutive_by_name (particles : particle list) =
 let evaluate_wrap (wrap_replacestring : string) (html : string) =
   wrap_replacestring |> String.replace_all ~sub:"$elements" ~by:html
 
-let rec evaluate_particles (parent_html : string) (particles : particle list) :
-    string =
-  let evaluate_particle = function
-    | { subparticles; parser = { build_html = None; _ }; _ } -> ""
-    | {
-        subparticles = [];
-        parser = { aftertext = None; build_html = Some build_html; _ };
-        _;
-      } as part ->
-        evaluate_parser_value part ~content:"" ~parent_html build_html
-    | {
-        subparticles = [];
-        parser = { aftertext = Some aft; build_html = Some build_html; _ };
-        _;
-      } as part ->
-        let to_replace =
-          evaluate_parser_value part ~content:"" ~parent_html aft
-        in
-        let to_replace =
-          if String.is_empty to_replace then parent_html else to_replace
-        in
-        let replace_with =
+let rec evaluate_particles (reg : registry) (parent_html : string)
+    (particles : particle list) : string =
+  let evaluate_particle p =
+    let output =
+      match p with
+      (* No produced html *)
+      | { subparticles; parser = { build_html = None; _ }; _ } -> ""
+      (* Non-aftertext leaf *)
+      | {
+          subparticles = [];
+          parser = { aftertext = None; build_html = Some build_html; _ };
+          _;
+        } as part ->
           evaluate_parser_value part ~content:"" ~parent_html build_html
-            ~replaced_text:(Some to_replace)
-        in
-        replace_first ~substring:to_replace ~new_text:replace_with parent_html
-    | {
-        subparticles;
-        parser = { aftertext; build_html = Some current_build_html; _ };
-        _;
-      } as part ->
-        (* regular children *)
-        let content =
+      (* Aftertext leaf *)
+      | {
+          subparticles = [];
+          parser = { aftertext = Some aft; build_html = Some build_html; _ };
+          _;
+        } as part ->
+          let to_replace =
+            evaluate_parser_value part ~content:"" ~parent_html aft
+          in
+          let to_replace =
+            if String.is_empty to_replace then parent_html else to_replace
+          in
+          let replace_with =
+            evaluate_parser_value part ~content:"" ~parent_html build_html
+              ~replaced_text:(Some to_replace)
+          in
+          replace_first ~substring:to_replace ~new_text:replace_with parent_html
+      (* Node *)
+      | {
+          subparticles;
+          parser = { aftertext; build_html = Some current_build_html; _ };
+          _;
+        } as part ->
+          (* regular children *)
+          let content =
+            subparticles
+            |> List.filter (fun s -> Option.is_none s.parser.aftertext)
+            |> evaluate_particles reg ""
+          in
+          (* the node itself *)
+          let html =
+            evaluate_parser_value part ~content ~parent_html current_build_html
+          in
+          (* aftertext children *)
           subparticles
-          |> List.filter (fun s -> Option.is_none s.parser.aftertext)
-          |> evaluate_particles ""
-        in
-        (* the node itself *)
-        let html =
-          evaluate_parser_value part ~content ~parent_html current_build_html
-        in
-        (* aftertext children *)
-        subparticles
-        |> List.filter (fun s -> Option.is_some s.parser.aftertext)
-        |> List.fold_left (fun acc p -> evaluate_particles acc [ p ]) html
+          |> List.filter (fun s -> Option.is_some s.parser.aftertext)
+          |> List.fold_left (fun acc p -> evaluate_particles reg acc [ p ]) html
+    in
+    if p.parser.head then (
+      reg.head <- reg.head ^ output;
+      "")
+    else output
   in
   particles |> group_consecutive_by_name
   |> List.map (fun group ->

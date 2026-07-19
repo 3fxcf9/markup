@@ -6,7 +6,6 @@
 
 ### Parser syntax
 - allow markup usage in build_html
-- allow writing in <head>
 - include files
 - references
 - `ctx` lua table

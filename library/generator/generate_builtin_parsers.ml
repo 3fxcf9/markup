@@ -34,6 +34,8 @@ let pp_parser_def oc p =
 
   fprintf oc "    raw = %b;\n" p.raw;
 
+  fprintf oc "    head = %b;\n" p.head;
+
   fprintf oc "    arg_as_content = %b;\n" p.arg_as_content;
 
   fprintf oc "    list_wrap = ";

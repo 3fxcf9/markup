@@ -8,6 +8,7 @@ type parser_def = {
   aftertext : parser_value option;
       (* None or the text to replace in the parent node *)
   raw : bool;
+  head : bool;
   arg_as_content : bool;
   list_wrap : string option;
   build_html : parser_value option;
@@ -20,6 +21,7 @@ let fallback_parser =
     aftertext = None;
     list_wrap = None;
     build_html = Some (ReplaceString "<p>$arg</p>");
+    head = false;
     raw = false;
     arg_as_content = false;
   }
@@ -31,6 +33,7 @@ let raw_parser =
     aftertext = None;
     list_wrap = None;
     build_html = Some (ReplaceString "$arg");
+    head = false;
     raw = false;
     arg_as_content = false;
     (* does not matter here *)
@@ -105,4 +108,4 @@ let print_particle (p : particle) = pp_particle p |> print_endline
 
 (* ---------- REGISTRY ---------- *)
 
-type registry = { mutable parsers : parser_def list }
+type registry = { mutable parsers : parser_def list; mutable head : string }
