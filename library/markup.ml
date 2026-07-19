@@ -10,7 +10,9 @@ let parse input =
   (* let reg : Types.registry = { parsers } in *)
 
   (* Generate_builtin_parsers.generate "generated_parsers.ml" ["builtin_parsers/basic.markup"]; *)
-  let reg: Types.registry = {parsers=[]} in
+  let parsers =
+      Generated_builtin_parsers.parsers in
+  let reg: Types.registry = {parsers} in
 
   let lines = String.split_on_char '\n' input in
   let document_particles = Parser.parse_document reg lines in

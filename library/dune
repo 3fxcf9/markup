@@ -1,0 +1,19 @@
+(rule
+ (target generated_builtin_parsers.ml)
+ (deps
+  (glob_files ../builtin_parsers/*.markup)
+  generator/generate_builtin_parsers.exe)
+ (action
+  (run
+   %{exe:generator/generate_builtin_parsers.exe}
+   %{target}
+   %{deps})))
+
+(library
+ (name markup)
+ (public_name markup)
+ (modules
+  markup
+  generated_builtin_parsers)
+ (libraries
+  markup_core))

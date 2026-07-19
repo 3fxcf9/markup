@@ -1,6 +1,0 @@
-(* AUTO-GENERATED FILE. DO NOT EDIT. *)
-
-open Types
-
-let parsers = [
-]

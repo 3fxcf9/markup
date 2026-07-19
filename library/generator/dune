@@ -1,0 +1,3 @@
+(executable
+ (name generate_builtin_parsers)
+ (libraries markup_core))

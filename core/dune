@@ -1,0 +1,12 @@
+(library
+ (name markup_core)
+ (public_name markup.core)
+ (wrapped false)
+ (modules
+  interpreter
+  lua_eval
+  markup_parser
+  parser
+  types)
+ (private_modules lua_eval)
+ (libraries str lua-ml))
