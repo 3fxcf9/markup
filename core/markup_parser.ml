@@ -62,7 +62,7 @@ let parse_parser_definition (lines : string list) :
             with
             | Some cue, _ -> Some (`Cue cue)
             | None, Some pattern -> Some (`Pattern pattern)
-            | None, None -> None
+            | None, None -> Some (`Cue name)
           in
           let aftertext = get_value "aftertext" in
           let build_html = get_value "build_html" in

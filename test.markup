@@ -3,11 +3,9 @@ date 19/07/2026
 author 3fxcf9
 
 parser print_date
-	cue print_date
 	build_html $metadata[date]
 
 parser title_in_head
-	cue title_in_head
 	build_html <title>$metadata[title]</title>
 	head
 
