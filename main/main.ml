@@ -1,5 +1,6 @@
 let () =
-  let content = In_channel.with_open_bin "test.markup" In_channel.input_all in
+  let input_file = Sys.argv.(1) in
+  let content = In_channel.with_open_bin input_file In_channel.input_all in
   let html, metadata = Markup.parse content in
   print_endline html;
   metadata

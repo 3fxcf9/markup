@@ -44,13 +44,21 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
   match lines with
   | [] -> []
   | line :: rest when String.trim line = "" -> parse_document reg rest
+  | "debug on" :: rest ->
+      reg.debug <- true;
+      parse_document reg rest
+  | "debug off" :: rest ->
+      reg.debug <- false;
+      parse_document reg rest
   | line :: rest ->
-      if String.starts_with ~prefix:"parser " line then (
+      if String.starts_with ~prefix:"parser " line then
         match Markup_parser.parse_parser_definition lines with
         | None, rest' -> parse_document reg rest'
-        | Some p, rest' ->
+        | Some p, rest' -> (
             reg.parsers <- reg.parsers @ [ p ];
-            parse_document reg rest')
+            match reg.debug with
+            | true -> make_parser_debug_particle p :: parse_document reg rest'
+            | false -> parse_document reg rest')
       else begin
         let level = indent_level line in
         let indented_lines, rest' = collect_indented_lines rest (level + 1) in

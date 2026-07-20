@@ -1,3 +1,5 @@
+debug on
+
 parser url_link
 	pattern https?://
 	build_html <a href="$atoms[0]">$replaced</a>
@@ -6,7 +8,16 @@ parser url_link
 parser bold
 	aftertext $arg
 	build_html <strong>$replaced</strong>
-
 parser italic
 	aftertext $arg
 	build_html <i>$replaced</i>
+parser highlight
+	aftertext $arg
+	build_html <mark>$replaced</mark>
+parser underline
+	aftertext $arg
+	build_html <u>$replaced</u>
+parser strikethrough
+	cue strike
+	aftertext $arg
+	build_html <s>$replaced</s>

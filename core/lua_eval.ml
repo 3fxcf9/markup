@@ -1,8 +1,9 @@
 open Lua_api
+open Types
 
 let getopt o = match o with Some v -> v | None -> raise Not_found
 
-(* The custom OCaml function exposed to Lua for reading files *)
+(* Custom functions exposed to lua *)
 let read_file_from_disk ls =
   let path = LuaL.checkstring ls 1 in
   try
@@ -18,6 +19,12 @@ let read_file_from_disk ls =
     Lua.pushstring ls err;
     2
 
+let html_escape_lua ls =
+  let s = LuaL.checkstring ls 1 in
+  let escaped = html_escape s in
+  Lua.pushstring ls escaped;
+  1
+
 let eval_lua (lua_func : string) (globals : string) =
   let ls = LuaL.newstate () in
   LuaL.openlibs ls;
@@ -25,6 +32,8 @@ let eval_lua (lua_func : string) (globals : string) =
   (* custom functions *)
   Lua.pushocamlfunction ls read_file_from_disk;
   Lua.setglobal ls "read_file";
+  Lua.pushocamlfunction ls html_escape_lua;
+  Lua.setglobal ls "escape";
 
   try
     (* load globals *)

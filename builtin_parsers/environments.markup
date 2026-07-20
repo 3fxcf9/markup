@@ -1,0 +1,68 @@
+debug on
+
+title Environment parsers
+
+The `named_environment` parser matches environments with that need to have a text label in the title (eg. Theorem – <name of the theorem>).
+parser named_environment
+	pattern \(\(thm\)\|\(prop\)\|\(cor\)\|\(lemma\)\|\(property\)\|\(notation\)\|\(def\)\|\(defprop\)\)\b
+	build_html
+		lua
+		local env_name, title = unpack(({
+				thm={"theorem", "Théorème"},
+				prop={"proposition", "Proposition"},
+				cor={"corollary", "Corollaire"},
+				lemma={"lemma", "Lemme"},
+				property={"property", "Propriété"},
+				notation={"notation", "Notation"},
+				def={"definition", "Définition"},
+				defprop={"definition-proposition", "Définition-proposition"},
+		})[this.matched_groups[2]])
+		if this.arg == "" then
+			return string.format('<div class="environment environment-%s">%s</div>', env_name, content)
+		else
+			return string.format('<div class="environment environment-%s"><div class="environment-title">%s — %s</div>%s</div>', env_name, title, this.arg, content)
+		end
+
+The `generic_environment` parser matches environments that do not require such a label.
+parser generic_environment
+	pattern \(\(proof\)\|\(method\)\|\(rem\)\|\(example\)\|\(recall\)\)\b
+	build_html
+		lua
+		local env_name = ({
+			proof="proof",
+			method="method",
+			rem="remark",
+			example="example",
+			recall="recall",
+		})[this.matched_groups[2]]
+		if this.arg == "" then
+			return string.format('<div class="environment environment-%s">%s</div>', env_name, content)
+		else
+			return string.format('<div class="environment environment-%s"><div class="environment-title">%s</div>%s</div>', env_name, this.arg, content)
+		end
+
+The figure parser accepts `left` or `right` as subparticles to respectively make the figure float left or right.
+parser figure
+	cue fig
+	build_html
+		lua
+		local attr = ''
+		for _, p in ipairs(this.subparticles) do
+				if p.name == "left" then
+						attr = ' class="float-left"'
+						break
+				elseif p.name == "right" then
+						attr = ' class="float-right"'
+						break
+				end
+		end
+		if this.arg == "" then
+			return string.format('<figure%s>%s</figure>', attr, content)
+		else
+			return string.format('<figure%s><figcaption>%s</figcaption>%s</figure>', attr, this.arg, content)
+		end
+
+parser fold
+	build_html lua return string.format('<details><summary>%s</summary>%s</details>', this.arg == "" and "View more" or this.arg, content)
+
+

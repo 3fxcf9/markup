@@ -1,3 +1,5 @@
+// debug on
+
 title Here is the title
 date 19/07/2026
 author 3fxcf9
@@ -9,10 +11,29 @@ print_date
 ## second level heading
 ### level 3 heading
 
+link #test text of the link
+	underline link
+
+fig caption
+	left
+	here an image
+
+fold click to expand
+	foldable text
+
+thm
+	content of the theorem
+
+thm best theorem
+	this is the best theorem
+
 code ocaml
 	function
 	  | [] -> []
 	  | hd::tl -> (hd+1)::tl
+
+code html
+	<u>underlined text</u>
 
 code
 	just txt
@@ -22,6 +43,7 @@ math
 
 - first
 	other line
+	- nested
 - second
 
 // Provided read_html function
@@ -43,4 +65,6 @@ a paragraph with various words
 	https://wikipedia.org
 	italic with
 
-
+sidenote a first sidenote
+sidenote
+	a second first sidenote

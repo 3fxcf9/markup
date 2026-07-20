@@ -85,7 +85,7 @@ let evaluate_parser_value ?(replaced_text : string option = None)
         |> String.replace_all ~sub:"$name" ~by:p.parser.name
         |> String.replace_all ~sub:"$content" ~by:content
         |> String.replace_all ~sub:"$arg"
-             ~by:(p.atoms |> List.tl |> String.concat " ")
+             ~by:(p.atoms |> List.tl |> String.concat " " |> html_escape)
         |> replace_list_access "atoms" p.atoms
         |> replace_assoc_list_access "metadata" reg.metadata
         |> (p.matched_groups

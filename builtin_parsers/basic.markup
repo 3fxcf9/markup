@@ -1,28 +1,30 @@
+debug on
+
+title Basic parsers
+
 parser comment
 	cue //
 
-// Metadata
+## Metadata
+
 parser title
 	metadata $arg
 	build_html <h1>$arg</h1>
-
 parser title_in_head
 	build_html <title>$metadata[title]</title>
 	head
 
 parser date
 	metadata $arg
-
 parser print_date
 	build_html <div class="date">$metadata[date]</div>
 
 parser author
 	metadata $arg
-
 parser print_author
 	build_html <div class="author">$metadata[author]</div>
 
-// Headings
+## Headings
 parser headings
 	pattern \(##\|###\|####\|#####\|######\)[ ]
 	build_html
@@ -30,22 +32,44 @@ parser headings
 		local level = string.len(this.matched_groups[2])
 		return string.format("<h%d>%s</h%d>", level, this.arg, level)
 
-// Blocs
+## Blocs
+parser hrule
+	build_html <hr/>
+
+parser link
+	build_html lua return string.format('<a href="%s">%s</a>', this.atoms[2], table.concat(this.atoms, " ", 3))
+
+parser left
+parser right
 parser code
 	cue code
 	raw
 	build_html
 		lua
 		local attr = this.arg == '' and '' or string.format(' class="lang-%s"', this.arg)
-		return string.format('<pre><code%s>%s</code></pre>', attr, content)
+		return string.format('<pre><code%s>%s</code></pre>', attr, escape(content))
 
 parser math
 	cue math
 	raw
 	build_html <code class="katex-display">$content</code>
 
+parser sidenote
+	build_html lua return string.format('<span class="sidenote-number"><small class="sidenote">%s%s</small></span>', this.arg == "" and "" or '<p>'..this.arg..'</p>', content)
+
+## Lists
+
 parser list
 	cue -
 	build_html <li>$arg$content</li>
+	list_wrap <ul>$elements</ul>
+	arg_as_content
+
+parser todo
+	pattern \[\(x\|X?\)\]
+	build_html
+		lua
+		local icon = this.matched_groups[2] == '' and '☐' or '☒'
+		return string.format('<li><div class="check-icon">%s</div>%s%s</li>', icon, this.arg, content)
 	list_wrap <ul>$elements</ul>
 	arg_as_content
