@@ -21,17 +21,17 @@ let rec parse_parser_fields (lines : string list) :
   | [] -> ([], [])
   | line :: rest ->
       let open Str in
-      if string_match key_val_pattern line 0 then
+      if string_match key_val_pattern line 0 then (* key value *)
         let key = matched_group 1 line in
         let value = matched_group 2 line in
         let assoc, rest' = parse_parser_fields rest in
         ((key, value) :: assoc, rest')
-      else if string_match key_pattern line 0 then
+      else if string_match key_pattern line 0 then (* key \n\t value *)
         let value, lines_after = parse_indented_string rest in
         let key = matched_group 1 line in
         let assoc, rest' = parse_parser_fields lines_after in
         ((key, value) :: assoc, rest')
-      else ([], rest)
+      else ([], lines)
 
 let parse_parser_definition (lines : string list) :
     parser_def option * string list =
@@ -105,7 +105,7 @@ let parse_parser_definition (lines : string list) :
 let rec parse_parser_file (lines : string list) : parser_def list =
   match lines with
   | [] -> []
-  | line :: rest when String.starts_with ~prefix:"parser" line -> (
+  | line :: rest when String.starts_with ~prefix:"parser " line -> (
       match parse_parser_definition lines with
       | None, rest' -> parse_parser_file rest'
       | Some p, rest' -> p :: parse_parser_file rest')
