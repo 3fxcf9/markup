@@ -1,48 +1,48 @@
+parser comment
+	cue //
+
+// Metadata
 parser title
-	cue title
 	metadata $arg
 	build_html <h1>$arg</h1>
 
+parser title_in_head
+	build_html <title>$metadata[title]</title>
+	head
+
 parser date
-	cue date
 	metadata $arg
+
+parser print_date
+	build_html <div class="date">$metadata[date]</div>
 
 parser author
-	cue author
 	metadata $arg
 
-parser test
-	cue test
+parser print_author
+	build_html <div class="author">$metadata[author]</div>
+
+// Headings
+parser headings
+	pattern \(##\|###\|####\|#####\|######\)[ ]
 	build_html
 		lua
-		return this.arg
+		local level = string.len(this.matched_groups[2])
+		return string.format("<h%d>%s</h%d>", level, this.arg, level)
 
-parser test2
-	cue test2
-	build_html lua return this.arg
-
+// Blocs
 parser code
 	cue code
 	raw
-	build_html <pre><code class="lang-$arg">$content</code></pre>
+	build_html
+		lua
+		local attr = this.arg == '' and '' or string.format(' class="lang-%s"', this.arg)
+		return string.format('<pre><code%s>%s</code></pre>', attr, content)
 
 parser math
 	cue math
 	raw
 	build_html <code class="katex-display">$content</code>
-
-parser link
-	pattern https?://
-	build_html
-		lua
-		local url = this.atoms[1]
-		return '<a href="' .. url .. '">' .. replaced .. '</a>'
-	aftertext $arg
-
-parser bold
-	cue bold
-	aftertext $arg
-	build_html <strong>$replaced</strong>
 
 parser list
 	cue -

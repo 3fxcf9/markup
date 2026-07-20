@@ -2,42 +2,45 @@ title Here is the title
 date 19/07/2026
 author 3fxcf9
 
-parser print_date
-	build_html $metadata[date]
-
-parser title_in_head
-	build_html <title>$metadata[title]</title>
-	head
-
-print_date
 title_in_head
+print_author
+print_date
 
-parser aa
-	pattern a\(b+\)a
-	head
-	build_html <style>$matched_groups[1]</style>
-
-aa first second third
-aba first second third
-abba first second third
-abbba first second third
-
-- first
-	other line
-- second
-
-a paragraph with various words
-	https://wikipedia.org
-	bold with
-
-a paragraph with various words
-	https://wikipedia.org various
-	bold with
-
-math
-	\sqrt 2
+## second level heading
+### level 3 heading
 
 code ocaml
 	function
 	  | [] -> []
 	  | hd::tl -> (hd+1)::tl
+
+code
+	just txt
+
+math
+	\sqrt 2
+
+- first
+	other line
+- second
+
+// Provided read_html function
+parser read
+	build_html lua return read_file(this.arg)
+
+parser soft_code
+	build_html <pre><code>$content</code></pre>
+
+soft_code
+	read dune-project
+
+// Aftertexts
+a paragraph with various words
+	https://wikipedia.org various
+	bold with
+
+a paragraph with various words
+	https://wikipedia.org
+	italic with
+
+

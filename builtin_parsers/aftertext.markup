@@ -1,0 +1,12 @@
+parser url_link
+	pattern https?://
+	build_html <a href="$atoms[0]">$replaced</a>
+	aftertext $arg
+
+parser bold
+	aftertext $arg
+	build_html <strong>$replaced</strong>
+
+parser italic
+	aftertext $arg
+	build_html <i>$replaced</i>
