@@ -232,7 +232,6 @@ let rec evaluate_particles (reg : registry) (parent_html : string)
   particles |> group_consecutive_by_name
   |> List.map (fun group ->
       match group with
-      | [ p ] -> evaluate_particle p
       | { parser = { list_wrap = Some w; _ }; _ } :: _ ->
           evaluate_wrap w (List.map evaluate_particle group |> String.concat "")
       | _ :: _ -> List.map evaluate_particle group |> String.concat ""
