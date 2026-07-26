@@ -1,4 +1,4 @@
-// debug on
+debug on
 
 title Here is the title
 date 19/07/2026
@@ -9,7 +9,9 @@ print_author
 print_date
 
 ## second level heading
+	class test
 ### level 3 heading
+	id test
 
 link #test text of the link
 	underline link

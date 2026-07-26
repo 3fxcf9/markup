@@ -21,3 +21,51 @@ parser strikethrough
 	cue strike
 	aftertext $arg
 	build_html <s>$replaced</s>
+
+parser class_name
+	cue class
+	build_html
+		lua
+		local function add_class(html, new_class)
+			return html:gsub("^<([^%s>/]+)(.-)>", function(tag, attrs)
+				local class = attrs:match('%f[%a]class%s*=%s*"([^"]*)"')
+				if class then
+					local escaped = new_class:gsub("(%W)", "%%%1")
+					if not (" " .. class .. " "):match(" " .. escaped .. " ") then
+						attrs = attrs:gsub(
+							'(%f[%a]class%s*=%s*")([^"]*)(")',
+							function(open, existing, close)
+								return open .. existing .. " " .. new_class .. close
+							end,
+							1
+						)
+					end
+				else
+					attrs = attrs .. ' class="' .. new_class .. '"'
+				end
+				return "<" .. tag .. attrs .. ">"
+			end, 1)
+		end
+		return add_class(replaced, this.atoms[2])
+	aftertext lua return "" -- this is how to add an empty string. FIXME I guess
+
+
+parser id
+	build_html
+		lua
+		local function add_id(html, new_id)
+				return html:gsub("^<([^%s>/]+)(.-)>", function(tag, attrs)
+						if attrs:match('%f[%a]id%s*=') then
+								attrs = attrs:gsub(
+										'(%f[%a]id%s*=%s*")([^"]*)(")',
+										"%1" .. new_id .. "%3",
+										1
+								)
+						else
+								attrs = attrs .. ' id="' .. new_id .. '"'
+						end
+						return "<" .. tag .. attrs .. ">"
+				end, 1)
+		end
+		return add_id(replaced, this.atoms[2])
+	aftertext lua return ""
