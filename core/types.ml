@@ -190,4 +190,7 @@ type registry = {
   mutable parsers : parser_def list;
   mutable head : string;
   mutable metadata : (string * string) list;
+  disable_external : bool;
+  external_metadata : (string * (string * string) list) list;
+  relative_path : string;
 }

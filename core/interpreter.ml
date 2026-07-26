@@ -75,6 +75,29 @@ let replace_assoc_list_access (name : string)
       s
   with _ -> s
 
+let normalize_path path =
+  if String.starts_with ~prefix:"./" path then
+    String.sub path 2 (String.length path - 2)
+  else path
+
+let replace_external_metadata_access (reg : registry) (s : string) : string =
+  let re =
+    "\\$external_metadata\\[\\([a-zA-Z0-9-_/]+\\)\\]\\[\\([a-z0-9_]+\\)\\]"
+    |> Str.regexp
+  in
+  try
+    Str.global_substitute re
+      (fun matched ->
+        let file =
+          Str.matched_group 1 matched
+          |> Filename.concat reg.relative_path
+          |> normalize_path
+        in
+        let key = Str.matched_group 2 matched in
+        reg.external_metadata |> List.assoc file |> List.assoc key)
+      s
+  with _ -> s
+
 let evaluate_parser_value ?(replaced_text : string option = None)
     (reg : registry) (p : particle) ~(content : string) ~(parent_html : string)
     (pval : parser_value) : string =
@@ -88,6 +111,7 @@ let evaluate_parser_value ?(replaced_text : string option = None)
              ~by:(p.atoms |> List.tl |> String.concat " " |> html_escape)
         |> replace_list_access "atoms" p.atoms
         |> replace_assoc_list_access "metadata" reg.metadata
+        |> replace_external_metadata_access reg
         |> (p.matched_groups
            |> Option.fold ~none:Fun.id ~some:(fun grp ->
                replace_list_access "matched_groups" grp))

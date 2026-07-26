@@ -1,4 +1,4 @@
-let parse input =
+let parse ?(disable_external=false) ?(external_metadata=[]) ?(relative_path="") input =
   (* let parsers_content = *)
   (*   In_channel.with_open_bin "builtin_parsers.markup" In_channel.input_all *)
   (*   |> String.split_on_char '\n' *)
@@ -10,9 +10,8 @@ let parse input =
   (* let reg : Types.registry = { parsers } in *)
 
   (* Generate_builtin_parsers.generate "generated_parsers.ml" ["builtin_parsers/basic.markup"]; *)
-  let parsers =
-      Generated_builtin_parsers.parsers in
-  let reg: Types.registry = {parsers; head=""; metadata=[]; debug=false} in
+  let parsers = Generated_builtin_parsers.parsers in
+  let reg: Types.registry = {parsers; head=""; metadata=[]; debug=false; disable_external; external_metadata; relative_path} in
 
   let lines = String.split_on_char '\n' input in
   let document_particles = Parser.parse_document reg lines in

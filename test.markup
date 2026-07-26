@@ -8,6 +8,14 @@ title_in_head
 print_author
 print_date
 
+// Works on a multiple files project
+// parser chap
+// 	build_html <div><a href="$arg/cours.html">$external_metadata[$arg/cours][title]</a></div>
+
+// chap Chap_1
+// chap Chap_2
+
+
 ## second level heading
 	class test
 ### level 3 heading

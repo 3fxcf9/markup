@@ -1,8 +1,8 @@
 ### General
 
 - Write builtin parsers
-- special parsers (eg. print_parsers)
 - optimize ?
+- write docs
 
 ### Parser syntax
 
@@ -12,3 +12,4 @@
 - `ctx` lua table
   - important ?
 - parser extend
+- allow empty value
