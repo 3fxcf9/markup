@@ -1,4 +1,4 @@
 (executable
  (name main)
- (modules main fs ssg)
- (libraries cmdliner markup debug))
+ (modules main ssg)
+ (libraries cmdliner markup fs debug))

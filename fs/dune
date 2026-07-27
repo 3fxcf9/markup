@@ -1,0 +1,4 @@
+(library
+ (name fs)
+ (public_name markup.fs)
+ (libraries debug))

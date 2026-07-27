@@ -63,5 +63,7 @@ let eval_lua (lua_func : string) (globals : string) =
 
     result
   with
-  | Failure err -> Printf.sprintf {|<div class="lua-error">%s</div>|} err
+  | Failure err ->
+      Debug.log ~cat:Lua "ERROR: %s" err;
+      Printf.sprintf {|<div class="lua-error">%s</div>|} err
   | _ -> "LUA_ERROR"

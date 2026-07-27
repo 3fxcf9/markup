@@ -34,7 +34,8 @@ let fallback_parser =
     matching = `Cue "*";
     aftertext = None;
     list_wrap = None;
-    build_html = Some (ReplaceString "$arg");
+    (* escaped *)
+    build_html = Some (ReplaceString "<p>$arg</p>");
     head = false;
     raw = false;
     metadata = None;
@@ -47,11 +48,25 @@ let raw_parser =
     matching = `Cue "";
     aftertext = None;
     list_wrap = None;
+    (* unescaped *)
     build_html = Some (LuaFunction "return table.concat(this.atoms, ' ', 2)");
     head = false;
     raw = false;
     metadata = None;
     (* does not matter here *)
+    arg_as_content = false;
+  }
+
+let markup_file_include_parser =
+  {
+    name = "markup_include";
+    matching = `Cue "";
+    aftertext = None;
+    list_wrap = None;
+    build_html = Some (ReplaceString "$content");
+    head = false;
+    raw = false;
+    metadata = None;
     arg_as_content = false;
   }
 
@@ -136,12 +151,19 @@ type particle = {
 
 let make_raw_particle (lines : string list) : particle =
   let raw = lines |> String.concat "\n" |> String.split_on_char ' ' in
-  let cue = match raw_parser.matching with `Cue c -> c | _ -> "raw" in
   {
     parser = raw_parser;
-    atoms = cue :: raw;
+    atoms = "" :: raw;
     matched_groups = None;
     subparticles = [];
+  }
+
+let make_markup_include_particle (subparticles : particle list) : particle =
+  {
+    parser = markup_file_include_parser;
+    atoms = "" :: [];
+    matched_groups = None;
+    subparticles;
   }
 
 let make_parser_debug_particle (parser : parser_def) : particle =
@@ -186,11 +208,13 @@ let print_particle (p : particle) = pp_particle p |> print_endline
 (* ---------- REGISTRY ---------- *)
 
 type registry = {
+  mutable depth : int;
   mutable debug : bool;
   mutable parsers : parser_def list;
   mutable head : string;
   mutable metadata : (string * string) list;
   disable_external : bool;
   external_metadata : (string * (string * string) list) list;
-  relative_path : string;
+  mutable relative_path : string;
+  project_files : (string * string) list;
 }

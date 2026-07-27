@@ -75,11 +75,6 @@ let replace_assoc_list_access (name : string)
       s
   with _ -> s
 
-let normalize_path path =
-  if String.starts_with ~prefix:"./" path then
-    String.sub path 2 (String.length path - 2)
-  else path
-
 let replace_external_metadata_access (reg : registry) (s : string) : string =
   let re =
     "\\$external_metadata\\[\\([a-zA-Z0-9-_/]+\\)\\]\\[\\([a-z0-9_]+\\)\\]"
@@ -91,7 +86,7 @@ let replace_external_metadata_access (reg : registry) (s : string) : string =
         let file =
           Str.matched_group 1 matched
           |> Filename.concat reg.relative_path
-          |> normalize_path
+          |> Fs.normalize_path
         in
         let key = Str.matched_group 2 matched in
         reg.external_metadata |> List.assoc file |> List.assoc key)
@@ -130,10 +125,18 @@ let evaluate_parser_value ?(replaced_text : string option = None)
           | c -> String.make 1 c)
         |> String.concat "" |> Printf.sprintf {|"%s"|}
       in
-      let metadata =
-        reg.metadata
+      let lua_of_assoc assoc =
+        assoc
         |> List.map (fun (key, value) ->
-            Printf.sprintf "%s = %s" key (escape_lua_str value))
+            Printf.sprintf {|["%s"] = %s|} key (escape_lua_str value))
+        |> String.concat "," |> Printf.sprintf "{%s}"
+      in
+
+      let metadata = lua_of_assoc reg.metadata in
+      let external_metadata =
+        reg.external_metadata
+        |> List.map (fun (file, meta) ->
+            Printf.sprintf {|["%s"] = %s|} file (lua_of_assoc meta))
         |> String.concat "," |> Printf.sprintf "{%s}"
       in
       let globals =
@@ -145,11 +148,14 @@ let evaluate_parser_value ?(replaced_text : string option = None)
             parent_html = %s
             replaced = %s
             metadata = %s
+            external_metadata = %s
+            relative_path = %s
           |}
           (particle_lua_self p) "nil" (escape_lua_str content)
           (escape_lua_str parent_html)
           (Option.fold ~none:"nil" ~some:escape_lua_str replaced_text)
-          metadata
+          metadata external_metadata
+          (escape_lua_str reg.relative_path)
       in
       Lua_eval.eval_lua lua_func globals
 

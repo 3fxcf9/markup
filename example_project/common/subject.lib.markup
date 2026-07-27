@@ -1,0 +1,30 @@
+header.lib.markup
+
+parser teacher
+	metadata $arg
+
+parser chapter
+	cue chap
+	build_html
+		<a href="$arg/course.html">
+			<div class="chapter">
+				<span class="chapter-title">$external_metadata[$arg/course][title]</span>
+				<span class="chapter-date">$external_metadata[$arg/course][date]</span>
+			</div>
+		</a>
+	list_wrap <div class="chapter-list">$elements</div>
+
+css
+	.chapter-list a {
+		text-decoration: none;
+		color: black;
+	}
+	.chapter {
+		display: flex;
+		justify-content: space-between;
+		border: 1px solid;
+		border-radius: .5rem;
+		padding: .5rem;
+		margin-bottom: 1rem;
+	}
+

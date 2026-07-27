@@ -5,6 +5,32 @@ title Basic parsers
 parser comment
 	cue //
 
+parser html
+	raw
+	build_html $content
+
+parser head
+	raw
+	head
+	build_html $content
+
+parser css
+	raw
+	head
+	build_html <style>$content</style>
+
+parser js
+	raw
+	head
+	build_html <script>$content</script>
+
+parser div
+	build_html
+		lua
+		if this.arg == '' then return '<div>'..content..'</div>' else
+			return string.format('<div class="%s">%s</div>', this.arg, content)
+		end
+
 ## Metadata
 
 parser title

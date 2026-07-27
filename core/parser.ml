@@ -40,61 +40,87 @@ let rec collect_indented_lines (lines : string list) (level : int) :
       (unindented_line :: indented_lines, rest')
   | _ -> ([], lines)
 
-let rec parse_document (reg : registry) (lines : string list) : particle list =
-  match lines with
-  | [] -> []
-  | line :: rest when String.trim line = "" -> parse_document reg rest
-  | "debug on" :: rest ->
-      reg.debug <- true;
-      parse_document reg rest
-  | "debug off" :: rest ->
-      reg.debug <- false;
-      parse_document reg rest
-  | line :: rest ->
-      if String.starts_with ~prefix:"parser " line then
-        match Markup_parser.parse_parser_definition lines with
-        | None, rest' -> parse_document reg rest'
-        | Some p, rest' -> (
-            reg.parsers <- reg.parsers @ [ p ];
-            match reg.debug with
-            | true -> make_parser_debug_particle p :: parse_document reg rest'
-            | false -> parse_document reg rest')
-      else begin
-        let level = indent_level line in
-        let indented_lines, rest' = collect_indented_lines rest (level + 1) in
-        let atoms = String.split_on_char ' ' line in
+let resolve_path (reg : registry) (path : string) : string =
+  (if String.starts_with ~prefix:"/" path then path
+   else Filename.concat reg.relative_path path)
+  |> Fs.normalize_path
 
-        let collect_subparticles (parser : parser_def) :
-            string list * particle list =
-          let atoms, indented_lines =
-            if parser.arg_as_content then begin
-              ( [ List.hd atoms ],
-                (atoms |> List.tl |> String.concat " ") :: indented_lines )
-            end
-            else (atoms, indented_lines)
+let rec parse_document (reg : registry) (lines : string list) : particle list =
+  if reg.depth >= 100 then
+    failwith "Maximum dependency depth exceeded, probable cycle."
+  else
+    match lines with
+    | [] -> []
+    | line :: rest when String.trim line = "" -> parse_document reg rest
+    | "debug on" :: rest ->
+        reg.debug <- true;
+        parse_document reg rest
+    | "debug off" :: rest ->
+        reg.debug <- false;
+        parse_document reg rest
+    | line :: rest
+      when (not reg.disable_external)
+           && Filename.check_suffix line ".markup"
+           && List.mem_assoc (resolve_path reg line) reg.project_files ->
+        let filepath = resolve_path reg line in
+        Debug.log ~cat:Parsing "Markup file inclusion: %s" filepath;
+        let content =
+          List.assoc filepath reg.project_files |> String.split_on_char '\n'
+        in
+        let old_relative_path = reg.relative_path in
+        reg.relative_path <- Filename.dirname filepath;
+        reg.depth <- reg.depth + 1;
+        let included_particles =
+          make_markup_include_particle (parse_document reg content)
+        in
+        reg.relative_path <- old_relative_path;
+        reg.depth <- reg.depth - 1;
+        included_particles :: parse_document reg rest
+    | line :: rest ->
+        if String.starts_with ~prefix:"parser " line then
+          match Markup_parser.parse_parser_definition lines with
+          | None, rest' -> parse_document reg rest'
+          | Some p, rest' -> (
+              reg.parsers <- reg.parsers @ [ p ];
+              match reg.debug with
+              | true -> make_parser_debug_particle p :: parse_document reg rest'
+              | false -> parse_document reg rest')
+        else begin
+          let level = indent_level line in
+          let indented_lines, rest' = collect_indented_lines rest (level + 1) in
+          let atoms = String.split_on_char ' ' line in
+
+          let collect_subparticles (parser : parser_def) :
+              string list * particle list =
+            let atoms, indented_lines =
+              if parser.arg_as_content then begin
+                ( [ List.hd atoms ],
+                  (atoms |> List.tl |> String.concat " ") :: indented_lines )
+              end
+              else (atoms, indented_lines)
+            in
+
+            if parser.raw then (atoms, [ make_raw_particle indented_lines ])
+            else (atoms, parse_document reg indented_lines)
           in
 
-          if parser.raw then (atoms, [ make_raw_particle indented_lines ])
-          else (atoms, parse_document reg indented_lines)
-        in
-
-        match try_parsers reg.parsers line with
-        | `None -> parse_document reg rest'
-        | `Cue parser ->
-            let atoms, subparticles = collect_subparticles parser in
-            { parser; atoms; matched_groups = None; subparticles }
-            :: parse_document reg rest'
-        | `Fallback parser ->
-            let atoms, subparticles = collect_subparticles parser in
-            {
-              parser;
-              atoms = "*" :: atoms;
-              matched_groups = None;
-              subparticles;
-            }
-            :: parse_document reg rest'
-        | `Pattern (parser, groups) ->
-            let atoms, subparticles = collect_subparticles parser in
-            { parser; atoms; matched_groups = Some groups; subparticles }
-            :: parse_document reg rest'
-      end
+          match try_parsers reg.parsers line with
+          | `None -> parse_document reg rest'
+          | `Cue parser ->
+              let atoms, subparticles = collect_subparticles parser in
+              { parser; atoms; matched_groups = None; subparticles }
+              :: parse_document reg rest'
+          | `Fallback parser ->
+              let atoms, subparticles = collect_subparticles parser in
+              {
+                parser;
+                atoms = "*" :: atoms;
+                matched_groups = None;
+                subparticles;
+              }
+              :: parse_document reg rest'
+          | `Pattern (parser, groups) ->
+              let atoms, subparticles = collect_subparticles parser in
+              { parser; atoms; matched_groups = Some groups; subparticles }
+              :: parse_document reg rest'
+        end

@@ -43,3 +43,19 @@ let find_mde dir_path =
 
 let read_file path =
   try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+
+let normalize_path path =
+  let parts = String.split_on_char '/' path in
+  let rec aux acc = function
+    | [] -> List.rev acc
+    | "" :: xs -> aux acc xs
+    | "." :: xs -> aux acc xs
+    | ".." :: xs ->
+        begin match acc with
+        | [] -> aux [ ".." ] xs
+        | ".." :: _ -> aux (".." :: acc) xs
+        | _ :: acc' -> aux acc' xs
+        end
+    | x :: xs -> aux (x :: acc) xs
+  in
+  String.concat "/" (aux [] parts)

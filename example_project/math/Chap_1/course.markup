@@ -1,0 +1,37 @@
+../../common/course.lib.markup
+
+title Chapter 1
+date 12/01/2026
+
+Here a course, with bold text, italic text and a link.
+	bold bold text
+	italic italic
+	https://wikipedia.org a link
+
+thm First theorem
+	id ref_thm_1
+	Some text
+	- a list
+		another paragraph
+		math
+			\sqrt 2
+		yet another paragraph
+		- a level 2 list
+	- back to level 1
+
+fig Figure title
+	right
+	id fig_id
+	html
+		<div style="width:100px; height:100px; background: gray;"></div>
+	// ./figures/file.svg -- soon !
+
+An idea for the future:
+
+code markup
+	annotate presentation.pdf
+		3. A note on the third page
+			layout compact
+		5. Interesting ! To remember.
+		8. See [ref_thm_1] and this figure
+			link fig_id this figure

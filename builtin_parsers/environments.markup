@@ -59,7 +59,7 @@ parser figure
 		if this.arg == "" then
 			return string.format('<figure%s>%s</figure>', attr, content)
 		else
-			return string.format('<figure%s><figcaption>%s</figcaption>%s</figure>', attr, this.arg, content)
+			return string.format('<figure%s>%s<figcaption>%s</figcaption></figure>', attr, content, this.arg)
 		end
 
 parser fold

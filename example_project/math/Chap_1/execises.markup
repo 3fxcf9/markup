@@ -1,0 +1,10 @@
+../../common/header.lib.markup
+
+title Chapter 1 exercises
+
+exercice
+	Voici l’ennoncé de l’exercice
+
+	answer
+		hidden
+		et en voici la correction

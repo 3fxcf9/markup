@@ -1,0 +1,14 @@
+css
+	body {
+		font-family: sans-serif;
+	}
+
+parser back_link
+	build_html
+		lua
+		if relative_path == "." then return "" else
+			local parent = relative_path:gsub("[^/]+$", "index")
+			return string.format('<a href="..">&lt; %s</a>', external_metadata[parent].title)
+		end
+
+back_link
