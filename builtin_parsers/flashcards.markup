@@ -1,0 +1,83 @@
+debug on
+
+title Flashcards parsers
+
+// TODO: Add "reversed" subparticle to make the card appear front-first and back-first
+// TODO: Merge all in one parser to always have Q: … A: … cues
+
+Short question flashcards:
+code markup
+	card front side
+		back side
+
+parser flashcards
+	cue card
+	metadata <p>$arg</p>	$content
+	build_html
+		<div class="flashcard">
+			<div class="flashcard-front"><p>$arg</p></div>
+			<div class="flashcard-back">$content</div>
+		</div>
+
+Long question flashcards:
+code markup
+	longcard
+		front side
+		back
+			back side
+
+parser back
+	build_html 	$content
+
+parser flashcards
+	cue longcard
+	metadata $content
+	build_html $content
+
+Compact flashcards:
+code markup
+	Q: front side A: back side
+
+parser flashcards
+	cue Q:
+	metadata
+		lua
+		local before = {}
+		local after = {}
+		local seen_answer = false
+		for i = 2, #this.atoms do
+			if this.atoms[i] == "A:" then
+				seen_answer = true
+				elseif seen_answer then
+				table.insert(after, this.atoms[i])
+			else
+				table.insert(before, this.atoms[i])
+			end
+		end
+		return string.format('<p>%s</p>\t<p>%s</p>', table.concat(before, " "), table.concat(after, " "))
+
+
+parser generate_flashcards_tsv
+	build_html
+		lua
+		local rows = metadata["flashcards"] or {}
+		local front = {}
+		local back = {}
+		for _, row in ipairs(rows) do
+				local a, b = row:match("^(.-)\t(.*)$")
+				if a and b then
+						table.insert(front, a)
+						table.insert(back, b)
+				end
+		end
+		-- generate tsv
+		local tsv_lines = {}
+		for i = 1, #front do
+				tsv_lines[#tsv_lines + 1] = front[i] .. "\t" .. back[i]
+		end
+		local contents = table.concat(tsv_lines, "\n")
+		-- write the file
+		local output_path = relative_path .. "/flashcards.tsv"
+		write_file(output_path, contents)
+		return "" -- this is how to execute code without producing HTML
+

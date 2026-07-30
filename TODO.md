@@ -13,3 +13,12 @@
   - important ?
 - parser extend
 - allow empty value
+
+### Parser ideas
+
+- ```
+  - support for footnotes^foot
+
+  ^foot Caption here.
+    label +
+  ```

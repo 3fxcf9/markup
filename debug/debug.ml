@@ -5,7 +5,7 @@ let is_enabled cat = List.mem cat !active_categories
 let enabled = ref true
 let set_enabled b = enabled := b
 
-let log ?(cat = General) fmt =
+let log ?(cat : category = General) fmt =
   if !enabled && is_enabled cat then
     let prefix =
       match cat with

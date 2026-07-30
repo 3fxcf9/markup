@@ -59,21 +59,23 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
         reg.debug <- false;
         parse_document reg rest
     | line :: rest
-      when (not reg.disable_external)
-           && Filename.check_suffix line ".markup"
-           && List.mem_assoc (resolve_path reg line) reg.project_files ->
+      when Filename.check_suffix line ".markup"
+           && resolve_path reg line |> reg.file_reader |> Option.is_some ->
         let filepath = resolve_path reg line in
         Debug.log ~cat:Parsing "Markup file inclusion: %s" filepath;
         let content =
-          List.assoc filepath reg.project_files |> String.split_on_char '\n'
+          reg.file_reader filepath |> Option.get |> String.split_on_char '\n'
         in
         let old_relative_path = reg.relative_path in
+        let old_filename = reg.filename in
         reg.relative_path <- Filename.dirname filepath;
+        reg.filename <- filepath |> Filename.basename |> Filename.chop_extension;
         reg.depth <- reg.depth + 1;
         let included_particles =
           make_markup_include_particle (parse_document reg content)
         in
         reg.relative_path <- old_relative_path;
+        reg.filename <- old_filename;
         reg.depth <- reg.depth - 1;
         included_particles :: parse_document reg rest
     | line :: rest ->

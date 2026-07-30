@@ -125,10 +125,26 @@ let evaluate_parser_value ?(replaced_text : string option = None)
           | c -> String.make 1 c)
         |> String.concat "" |> Printf.sprintf {|"%s"|}
       in
+
       let lua_of_assoc assoc =
-        assoc
-        |> List.map (fun (key, value) ->
-            Printf.sprintf {|["%s"] = %s|} key (escape_lua_str value))
+        let grouped =
+          List.fold_left
+            (fun acc (key, value) ->
+              let values =
+                match List.assoc_opt key acc with
+                | Some vs -> value :: vs
+                | None -> [ value ]
+              in
+              (key, values) :: List.remove_assoc key acc)
+            [] assoc
+        in
+        grouped
+        |> List.map (fun (key, values) ->
+            let value =
+              values |> List.map escape_lua_str |> String.concat ", "
+              |> Printf.sprintf "{%s}"
+            in
+            Printf.sprintf {|["%s"] = %s|} key value)
         |> String.concat "," |> Printf.sprintf "{%s}"
       in
 
@@ -150,14 +166,16 @@ let evaluate_parser_value ?(replaced_text : string option = None)
             metadata = %s
             external_metadata = %s
             relative_path = %s
+            filename = %s
           |}
           (particle_lua_self p) "nil" (escape_lua_str content)
           (escape_lua_str parent_html)
           (Option.fold ~none:"nil" ~some:escape_lua_str replaced_text)
           metadata external_metadata
           (escape_lua_str reg.relative_path)
+          (escape_lua_str reg.filename)
       in
-      Lua_eval.eval_lua lua_func globals
+      Lua_eval.eval_lua reg lua_func globals
 
 let replace_first ~substring ~new_text s =
   let quoted = Str.quote substring in

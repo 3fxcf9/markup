@@ -32,7 +32,6 @@ let output =
 
 let run debug http_root input output =
   Debug.set_enabled debug;
-  ignore @@ Fs.create_dir_if_not_exists output;
   let ensure_slash_end path =
     if String.ends_with ~suffix:"/" path then path else path ^ "/"
   in

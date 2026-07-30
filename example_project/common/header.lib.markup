@@ -8,7 +8,7 @@ parser back_link
 		lua
 		if relative_path == "." then return "" else
 			local parent = relative_path:gsub("[^/]+$", "index")
-			return string.format('<a href="..">&lt; %s</a>', external_metadata[parent].title)
+			return string.format('<a href="..">&lt; %s</a>', external_metadata[parent].title[1])
 		end
 
 back_link

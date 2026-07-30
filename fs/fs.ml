@@ -11,7 +11,7 @@ let list_directory root dir =
    with Sys_error e -> Error e)
   |> Result.value ~default:[||] |> Array.to_list
 
-(** [write_file path content] writes [content] into the file at [path] **)
+(** [write_file path content] writes [content] into the file at [path] *)
 let write_file path content =
   try
     Debug.log ~cat:IO "Writing file %s" path;

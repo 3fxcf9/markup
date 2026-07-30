@@ -1,2 +1,22 @@
 title Chapter 2
 date 13/01/2026
+
+card question 1
+	answer 1
+
+longcard
+	question 2
+	back
+		answer 2
+
+Q: question 3 A: answer 3
+
+generate_flashcards_tsv
+
+This will generate a file named flashcards.tsv containing
+code tsv
+	<p>question 1</p>	<p>answer 1</p>
+	<p>question 2</p>	<p>answer 2</p>
+	<p>question 3</p>	<p>answer 3</p>
+
+A scheduler can then read all flashcards.tsv files in the project.

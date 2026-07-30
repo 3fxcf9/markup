@@ -9,10 +9,27 @@ let rec list_markup_files root path : string list =
 
 let build_project input output http_root =
   assert (Sys.is_directory input) |> ignore;
+  assert (Sys.is_directory output) |> ignore;
+
+  ignore @@ Fs.create_dir_if_not_exists output;
+
   let markup_files =
     list_markup_files input ""
     |> List.map (fun f -> (f, Fs.read_file (Filename.concat input f)))
   in
+
+  let file_reader relative_path =
+    Debug.log ~cat:IO "File reader called on file %s" relative_path;
+    let path = Filename.concat input relative_path in
+    try Some (In_channel.with_open_bin path In_channel.input_all)
+    with _ -> None
+  in
+  let file_writer relative_path contents =
+    Debug.log ~cat:IO "File writer called on file %s" relative_path;
+    let path = Filename.concat output relative_path in
+    Fs.write_file path contents
+  in
+
   (* Two pass approach. *)
   (* First pass: get the metadata for each file in the project. *)
   Debug.log "First pass (metadata)";
@@ -21,9 +38,9 @@ let build_project input output http_root =
     |> List.map (fun (name, content) ->
         ( name |> Filename.remove_extension,
           content
-          |> Markup.parse ~disable_external:false
-               ~relative_path:(Filename.dirname name)
-               ~project_files:markup_files
+          |> Markup.parse ~relative_path:(Filename.dirname name)
+               ~filename:(name |> Filename.basename |> Filename.chop_extension)
+               ~file_reader ~file_writer
           |> snd ))
     (* FIXME *)
   in
@@ -50,7 +67,42 @@ let build_project input output http_root =
       then
         content
         |> Markup.parse ~external_metadata
-             ~relative_path:(Filename.dirname name) ~project_files:markup_files
+             ~relative_path:(Filename.dirname name)
+             ~filename:(name |> Filename.basename |> Filename.chop_extension)
+             ~file_reader ~file_writer
         |> fst |> Fs.write_file output_path |> ignore)
 
-let build_single_file path output http_root = ()
+let build_single_file input output http_root =
+  assert (not (Sys.is_directory input)) |> ignore;
+
+  let output_path =
+    if Sys.file_exists output then
+      if Sys.is_directory output then
+        (input |> Filename.basename |> Filename.chop_extension
+       |> Filename.concat output)
+        ^ ".html"
+      else output
+    else if Filename.check_suffix output ".html" then (
+      output |> Filename.dirname |> Fs.create_dir_if_not_exists |> ignore;
+      output)
+    else (
+      Fs.create_dir_if_not_exists output |> ignore;
+      (input |> Filename.basename |> Filename.chop_extension
+     |> Filename.concat output)
+      ^ ".html")
+  in
+  let file_reader relative_path =
+    Debug.log ~cat:IO "File reader called on file %s" relative_path;
+    let path = Filename.concat (Filename.dirname output_path) relative_path in
+    try Some (In_channel.with_open_bin path In_channel.input_all)
+    with _ -> None
+  in
+  let file_writer relative_path contents =
+    Debug.log ~cat:IO "File writer called on file %s" relative_path;
+    let path = Filename.concat (Filename.dirname output_path) relative_path in
+    Fs.write_file path contents
+  in
+
+  Fs.read_file input
+  |> Markup.parse ~file_reader ~file_writer
+  |> fst |> Fs.write_file output_path |> ignore
