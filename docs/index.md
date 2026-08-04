@@ -34,7 +34,7 @@ Let’s break it down line by line:
   * paragraph content
   ```
 
-  > [!NOTE]
+  > **Note**<br/>
   > The leading asterisk is not necessary, as this parser is also the fallback (used for a particle if no other parser matches).
 
 - The third line is a _replace string_ used during the evaluation phase to generate HTML from a particle. Here, it wraps the argument of the associated particle in `<p>` tags, so the resulting HTML will be `<p>paragraph content</p>`.
@@ -200,7 +200,7 @@ No empty line is accepted in the Lua code. The code must call `return` with a st
 
   It uses a pattern instead of a cue, and the captured string is used in the parser’s logic.
 
-  > [!NOTE]
+  > **Note**<br/>
   > The `[ ]` character set is used to match a space, as a trailing space is difficult to read and sometimes removed by formatters.
 
 - The list parser is implemented as follows:
@@ -297,5 +297,5 @@ No empty line is accepted in the Lua code. The code must call `return` with a st
     aftertext lua return ""
   ```
 
-  > [!NOTE]
+  > **Note**<br/>
   > The `aftertext lua return ""` trick sets an empty `aftertext` (to replace the entire HTML of their parent).
