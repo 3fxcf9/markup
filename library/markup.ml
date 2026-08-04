@@ -19,4 +19,4 @@ let parse ?(disable_external=false) ?(external_metadata=[]) ?(relative_path="") 
   (* document_particles |> List.map pp_particle |> List.iter print_endline; *)
   (* print_endline "\n#######################################################\n"; *)
   let body = Interpreter.evaluate_particles reg "" document_particles in
-  (Printf.sprintf {|<!DOCTYPE html><head><meta charset="UTF-8">%s</head><body>%s</body>|} reg.head body), reg.metadata
+  (Printf.sprintf {|<!DOCTYPE html><html><head><meta charset="UTF-8">%s</head><body>%s</body></html>|} reg.head body), reg.metadata

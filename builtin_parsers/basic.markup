@@ -52,7 +52,7 @@ parser print_author
 
 ## Headings
 parser headings
-	pattern \(##\|###\|####\|#####\|######\)[ ]
+	pattern \(#\|##\|###\|####\|#####\|######\)[ ]
 	build_html
 		lua
 		local level = string.len(this.matched_groups[2])
@@ -65,8 +65,6 @@ parser hrule
 parser link
 	build_html lua return string.format('<a href="%s">%s</a>', this.atoms[2], table.concat(this.atoms, " ", 3))
 
-parser left
-parser right
 parser code
 	cue code
 	raw
@@ -87,7 +85,7 @@ parser sidenote
 
 parser list
 	cue -
-	build_html <li>$arg$content</li>
+	build_html <li>$content</li>
 	list_wrap <ul>$elements</ul>
 	arg_as_content
 
@@ -96,6 +94,6 @@ parser todo
 	build_html
 		lua
 		local icon = this.matched_groups[2] == '' and '☐' or '☒'
-		return string.format('<li><div class="check-icon">%s</div>%s%s</li>', icon, this.arg, content)
+		return string.format('<li><div class="check-icon">%s</div>%s</li>', icon, content)
 	list_wrap <ul>$elements</ul>
 	arg_as_content

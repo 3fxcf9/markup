@@ -42,6 +42,8 @@ parser generic_environment
 		end
 
 The figure parser accepts `left` or `right` as subparticles to respectively make the figure float left or right.
+parser left
+parser right
 parser figure
 	cue fig
 	build_html

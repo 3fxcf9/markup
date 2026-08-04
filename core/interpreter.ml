@@ -100,7 +100,6 @@ let evaluate_parser_value ?(replaced_text : string option = None)
   | ReplaceString expr -> (
       try
         expr
-        |> String.replace_all ~sub:"$name" ~by:p.parser.name
         |> String.replace_all ~sub:"$content" ~by:content
         |> String.replace_all ~sub:"$arg"
              ~by:(p.atoms |> List.tl |> String.concat " " |> html_escape)
