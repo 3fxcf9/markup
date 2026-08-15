@@ -2,7 +2,8 @@
 
 - Write builtin parsers
 - optimize ?
-- write docs
+- use content instead of arg for raw and parser debug parsers
+- inline markup
 
 ### Parser syntax
 
@@ -22,3 +23,12 @@
   ^foot Caption here.
     label +
   ```
+
+### Documentation
+
+- project mode
+- error (invalid parser, lua error…)
+- clarify fallback parser
+- external_metadata example
+- note about tab indentation
+- cli usage

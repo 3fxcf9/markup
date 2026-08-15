@@ -27,8 +27,8 @@ parser js
 parser div
 	build_html
 		lua
-		if this.arg == '' then return '<div>'..content..'</div>' else
-			return string.format('<div class="%s">%s</div>', this.arg, content)
+		if this.arg == '' then return '<div>'..this.content..'</div>' else
+			return string.format('<div class="%s">%s</div>', this.arg, this.content)
 		end
 
 ## Metadata
@@ -71,7 +71,7 @@ parser code
 	build_html
 		lua
 		local attr = this.arg == '' and '' or string.format(' class="lang-%s"', this.arg)
-		return string.format('<pre><code%s>%s</code></pre>', attr, escape(content))
+		return string.format('<pre><code%s>%s</code></pre>', attr, escape(this.content))
 
 parser math
 	cue math
@@ -79,7 +79,7 @@ parser math
 	build_html <code class="katex-display">$content</code>
 
 parser sidenote
-	build_html lua return string.format('<span class="sidenote-number"><small class="sidenote">%s%s</small></span>', this.arg == "" and "" or '<p>'..this.arg..'</p>', content)
+	build_html lua return string.format('<span class="sidenote-number"><small class="sidenote">%s%s</small></span>', this.arg == "" and "" or '<p>'..this.arg..'</p>', this.content)
 
 ## Lists
 
@@ -94,6 +94,6 @@ parser todo
 	build_html
 		lua
 		local icon = this.matched_groups[2] == '' and '☐' or '☒'
-		return string.format('<li><div class="check-icon">%s</div>%s</li>', icon, content)
+		return string.format('<li><div class="check-icon">%s</div>%s</li>', icon, this.content)
 	list_wrap <ul>$elements</ul>
 	arg_as_content

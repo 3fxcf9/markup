@@ -21,6 +21,9 @@ parser strikethrough
 	cue strike
 	aftertext $arg
 	build_html <s>$replaced</s>
+parser inline_code
+	aftertext $arg
+	build_html <code>$replaced</code>
 
 parser class_name
 	cue class

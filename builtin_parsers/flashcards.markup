@@ -2,44 +2,57 @@ debug on
 
 title Flashcards parsers
 
-// TODO: Add "reversed" subparticle to make the card appear front-first and back-first
-// TODO: Merge all in one parser to always have Q: … A: … cues
+title_in_head
 
-Short question flashcards:
+The flashcards parser handles all of these syntaxes:
+	inline_code flashcards
+
 code markup
-	card front side
-		back side
+	Q: <front> A: <back>
+		reversed
+	Q: <front>
+		A: <back>
+	Q: <front>
+		A:
+			<back>
+		reversed
+	Q:
+		<front>
+		A: <back>
+	Q:
+		<front>
+		A:
+			<back>
 
-parser flashcards
-	cue card
-	metadata <p>$arg</p>	$content
-	build_html
-		<div class="flashcard">
-			<div class="flashcard-front"><p>$arg</p></div>
-			<div class="flashcard-back">$content</div>
-		</div>
-
-Long question flashcards:
-code markup
-	longcard
-		front side
-		back
-			back side
-
-parser back
-	build_html 	$content
-
-parser flashcards
-	cue longcard
-	metadata $content
-	build_html $content
-
-Compact flashcards:
-code markup
-	Q: front side A: back side
 
 parser flashcards
 	cue Q:
+	arg_as_content
+	build_html
+		lua
+		local before = {}
+		local after = {}
+		local seen_answer = false
+		for i = 2, #this.atoms do
+			if this.atoms[i] == "A:" then
+				seen_answer = true
+				elseif seen_answer then
+				table.insert(after, this.atoms[i])
+			else
+				table.insert(before, this.atoms[i])
+			end
+		end
+		local front = ""
+		local back = ""
+		if seen_answer then
+			front = "<p>" .. escape(table.concat(before, " ")) .. "</p>"
+			back = "<p>" .. escape(table.concat(after, " ")) .. "</p>"
+		else
+			front = this.content
+			back = find_subparticle("flashcard_back").content
+		end
+		reversed = find_subparticle("flashcard_reversed_flag") ~= nil and ' reversed' or ''
+		return string.format('<div class="flashcard%s"><div class="flashcard-front">%s</div><div class="flashcard-back">%s</div></div>', reversed, front, back)
 	metadata
 		lua
 		local before = {}
@@ -54,8 +67,27 @@ parser flashcards
 				table.insert(before, this.atoms[i])
 			end
 		end
-		return string.format('<p>%s</p>\t<p>%s</p>', table.concat(before, " "), table.concat(after, " "))
+		local front = ""
+		local back = ""
+		if seen_answer then
+			front = "<p>" .. escape(table.concat(before, " ")) .. "</p>"
+			back = "<p>" .. escape(table.concat(after, " ")) .. "</p>"
+		else
+			front = this.content
+			back = find_subparticle("flashcard_back").content
+		end
+		reversed = find_subparticle("flashcard_reversed_flag") ~= nil and 'true' or 'false'
+		return string.format('%s\t%s\t%s', front, back, reversed)
 
+parser flashcard_back
+	cue A:
+	arg_as_content
+
+parser flashcard_reversed_flag
+	cue reversed
+
+
+A tsv file containing the flashcards found in the document can then be generated with the following parser:
 
 parser generate_flashcards_tsv
 	build_html
@@ -63,17 +95,19 @@ parser generate_flashcards_tsv
 		local rows = metadata["flashcards"] or {}
 		local front = {}
 		local back = {}
+		local reversed = {}
 		for _, row in ipairs(rows) do
-				local a, b = row:match("^(.-)\t(.*)$")
-				if a and b then
+				local a, b, c = row:match("^(.-)\t(.-)\t(.*)$")
+				if a and b and c then
 						table.insert(front, a)
 						table.insert(back, b)
+						table.insert(reversed, c)
 				end
 		end
 		-- generate tsv
 		local tsv_lines = {}
 		for i = 1, #front do
-				tsv_lines[#tsv_lines + 1] = front[i] .. "\t" .. back[i]
+				tsv_lines[#tsv_lines + 1] = front[i] .. "\t" .. back[i] .. "\t" .. reversed[i]
 		end
 		local contents = table.concat(tsv_lines, "\n")
 		-- write the file

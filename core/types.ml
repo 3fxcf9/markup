@@ -71,6 +71,25 @@ let markup_file_include_parser =
   }
 
 let parser_debug_parser =
+  let parser_debug_css =
+    {|<style>
+.parser-debug {
+  background-color: rgba(0,0,255,0.2);
+  border: 2px solid blue;
+  border-radius: .5rem;
+  margin-bottom: 1rem;
+  .parser-name {
+    border-bottom: 2px solid blue;
+    padding: .5rem;
+  }
+  .parser-code {
+    padding: .5rem;
+    overflow: auto;
+  }
+}
+</style>|}
+    |> String.replace_all ~sub:"\n" ~by:""
+  in
   {
     name = "parser_debug";
     matching = `Cue "";
@@ -79,7 +98,9 @@ let parser_debug_parser =
     build_html =
       Some
         (LuaFunction
-           {|return string.format('<div class="parser-debug"><div class="parser-name">%s</div><div class="parser-code"><pre><code>%s</code></pre></div></div>', this.atoms[1], escape(table.concat(this.atoms, ' ', 2)))|});
+           ({|return string.format('|} ^ parser_debug_css
+          ^ {|<div class="parser-debug"><div class="parser-name">%s</div><div class="parser-code"><pre><code>%s</code></pre></div></div>', this.atoms[2], escape(table.concat(this.atoms, ' ', 3)))|}
+           ));
     head = false;
     raw = false;
     metadata = None;
@@ -145,6 +166,7 @@ let pp_parser_def ?(indent = 0) p =
 type particle = {
   parser : parser_def;
   atoms : string list;
+  content : string;
   matched_groups : string list option;
   subparticles : particle list;
 }
@@ -154,6 +176,7 @@ let make_raw_particle (lines : string list) : particle =
   {
     parser = raw_parser;
     atoms = "" :: raw;
+    content = "";
     matched_groups = None;
     subparticles = [];
   }
@@ -162,6 +185,7 @@ let make_markup_include_particle (subparticles : particle list) : particle =
   {
     parser = markup_file_include_parser;
     atoms = "" :: [];
+    content = "";
     matched_groups = None;
     subparticles;
   }
@@ -170,6 +194,7 @@ let make_parser_debug_particle (parser : parser_def) : particle =
   {
     parser = parser_debug_parser;
     atoms = "" :: parser.name :: String.split_on_char ' ' (pp_parser_def parser);
+    content = "";
     matched_groups = None;
     subparticles = [];
   }
@@ -209,13 +234,13 @@ let print_particle (p : particle) = pp_particle p |> print_endline
 
 type registry = {
   mutable depth : int;
-  mutable debug : bool;
-  mutable parsers : parser_def list;
-  mutable head : string;
-  mutable metadata : (string * string) list;
+  mutable debug : bool ref;
+  mutable parsers : parser_def list ref;
+  mutable head : string ref;
+  mutable metadata : (string * string) list ref;
   external_metadata : (string * (string * string) list) list;
-  mutable relative_path : string;
-  mutable filename : string;
+  mutable relative_path : string ref;
+  mutable filename : string ref;
   file_reader : string -> string option;
   file_writer : string -> string -> (unit, string) result;
 }

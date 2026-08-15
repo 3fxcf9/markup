@@ -46,12 +46,13 @@ let rec particle_lua_self (p : particle) =
     {|{
     name = %s,
     atoms = %s,
+    content = %s,
     arg = %s,
     matched_groups = %s,
     subparticles = %s
 }|}
     (escape_lua_str p.parser.name)
-    atoms_lua arg matched_groups_lua subparticles_lua
+    atoms_lua (escape_lua_str p.content) arg matched_groups_lua subparticles_lua
 
 let replace_list_access (name : string) (list : string list) (s : string) :
     string =
@@ -85,7 +86,7 @@ let replace_external_metadata_access (reg : registry) (s : string) : string =
       (fun matched ->
         let file =
           Str.matched_group 1 matched
-          |> Filename.concat reg.relative_path
+          |> Filename.concat !(reg.relative_path)
           |> Fs.normalize_path
         in
         let key = Str.matched_group 2 matched in
@@ -93,18 +94,39 @@ let replace_external_metadata_access (reg : registry) (s : string) : string =
       s
   with _ -> s
 
-let evaluate_parser_value ?(replaced_text : string option = None)
-    (reg : registry) (p : particle) ~(content : string) ~(parent_html : string)
+let replace_first ~substring ~new_text s =
+  let quoted = Str.quote substring in
+  let whole_word_re = Str.regexp ("\\b" ^ quoted ^ "\\b") in
+  let any_re = Str.regexp quoted in
+  try
+    ignore (Str.search_forward whole_word_re s 0);
+    Str.replace_first whole_word_re new_text s
+  with Not_found -> (
+    try Str.replace_first any_re new_text s with Not_found -> s)
+
+let group_consecutive_by_name (particles : particle list) =
+  let rec aux groups current_group = function
+    | [] -> List.rev (List.rev current_group :: groups)
+    | p :: ps -> (
+        match current_group with
+        | last :: _ when last.parser.name = p.parser.name ->
+            aux groups (p :: current_group) ps
+        | _ -> aux (List.rev current_group :: groups) [ p ] ps)
+  in
+  match particles with [] -> [] | p :: ps -> aux [] [ p ] ps
+
+let rec evaluate_parser_value ?(replaced_text : string option = None)
+    (reg : registry) (p : particle) ~(parent_html : string)
     (pval : parser_value) : string =
   match pval with
   | ReplaceString expr -> (
       try
         expr
-        |> String.replace_all ~sub:"$content" ~by:content
+        |> String.replace_all ~sub:"$content" ~by:p.content
         |> String.replace_all ~sub:"$arg"
              ~by:(p.atoms |> List.tl |> String.concat " " |> html_escape)
         |> replace_list_access "atoms" p.atoms
-        |> replace_assoc_list_access "metadata" reg.metadata
+        |> replace_assoc_list_access "metadata" !(reg.metadata)
         |> replace_external_metadata_access reg
         |> (p.matched_groups
            |> Option.fold ~none:Fun.id ~some:(fun grp ->
@@ -147,7 +169,7 @@ let evaluate_parser_value ?(replaced_text : string option = None)
         |> String.concat "," |> Printf.sprintf "{%s}"
       in
 
-      let metadata = lua_of_assoc reg.metadata in
+      let metadata = lua_of_assoc !(reg.metadata) in
       let external_metadata =
         reg.external_metadata
         |> List.map (fun (file, meta) ->
@@ -159,7 +181,6 @@ let evaluate_parser_value ?(replaced_text : string option = None)
           {|
             this = %s
             ctx = %s
-            content = %s
             parent_html = %s
             replaced = %s
             metadata = %s
@@ -167,58 +188,51 @@ let evaluate_parser_value ?(replaced_text : string option = None)
             relative_path = %s
             filename = %s
           |}
-          (particle_lua_self p) "nil" (escape_lua_str content)
+          (particle_lua_self p) "nil"
           (escape_lua_str parent_html)
           (Option.fold ~none:"nil" ~some:escape_lua_str replaced_text)
           metadata external_metadata
-          (escape_lua_str reg.relative_path)
-          (escape_lua_str reg.filename)
+          (escape_lua_str !(reg.relative_path))
+          (escape_lua_str !(reg.filename))
       in
-      Lua_eval.eval_lua reg lua_func globals
 
-let replace_first ~substring ~new_text s =
-  let quoted = Str.quote substring in
-  let whole_word_re = Str.regexp ("\\b" ^ quoted ^ "\\b") in
-  let any_re = Str.regexp quoted in
-  try
-    ignore (Str.search_forward whole_word_re s 0);
-    Str.replace_first whole_word_re new_text s
-  with Not_found -> (
-    try Str.replace_first any_re new_text s with Not_found -> s)
+      let markup_parser ls =
+        let open Lua_api in
+        let lines = LuaL.checkstring ls 1 |> String.split_on_char '\n' in
+        Parser.parse_document reg lines
+        |> evaluate_particles reg "" |> fst |> Lua.pushstring ls;
+        1
+      in
+      Lua_eval.eval_lua ~markup_parser reg lua_func globals
 
-let group_consecutive_by_name (particles : particle list) =
-  let rec aux groups current_group = function
-    | [] -> List.rev (List.rev current_group :: groups)
-    | p :: ps -> (
-        match current_group with
-        | last :: _ when last.parser.name = p.parser.name ->
-            aux groups (p :: current_group) ps
-        | _ -> aux (List.rev current_group :: groups) [ p ] ps)
-  in
-  match particles with [] -> [] | p :: ps -> aux [] [ p ] ps
-
-let evaluate_wrap (wrap_replacestring : string) (html : string) =
+and evaluate_wrap (wrap_replacestring : string) (html : string) =
   wrap_replacestring |> String.replace_all ~sub:"$elements" ~by:html
 
-let evaluate_metadata (reg : registry) (part : particle) ~(content : string)
-    ~(parent_html : string) (pval_opt : parser_value option) : unit =
+and evaluate_metadata (reg : registry) (part : particle) ~(parent_html : string)
+    (pval_opt : parser_value option) : unit =
   pval_opt
   |> Option.iter (fun pval ->
-      reg.metadata <-
-        ( part.parser.name,
-          evaluate_parser_value reg part ~content ~parent_html pval )
-        :: reg.metadata)
+      reg.metadata :=
+        (part.parser.name, evaluate_parser_value reg part ~parent_html pval)
+        :: !(reg.metadata))
 
-let rec evaluate_particles (reg : registry) (parent_html : string)
-    (particles : particle list) : string =
-  let evaluate_particle p =
-    let output =
+and evaluate_particles (reg : registry) (parent_html : string)
+    (particles : particle list) : string * particle list =
+  let evaluate_particle p : string * particle =
+    let output, evaluated_particle =
       match p with
       (* No produced html *)
       | { subparticles; parser = { build_html = None; metadata; _ }; _ } as part
         ->
-          evaluate_metadata reg part ~content:"" ~parent_html metadata;
-          ""
+          let content, evaluated_subparticles =
+            subparticles
+            |> List.filter (fun s -> Option.is_none s.parser.aftertext)
+            |> evaluate_particles reg ""
+          in
+          evaluate_metadata reg
+            { part with subparticles = evaluated_subparticles }
+            ~parent_html metadata;
+          ("", { part with content; subparticles = evaluated_subparticles })
       (* Non-aftertext leaf *)
       | {
           subparticles = [];
@@ -226,8 +240,8 @@ let rec evaluate_particles (reg : registry) (parent_html : string)
             { aftertext = None; build_html = Some build_html; metadata; _ };
           _;
         } as part ->
-          evaluate_metadata reg part ~content:"" ~parent_html metadata;
-          evaluate_parser_value reg part ~content:"" ~parent_html build_html
+          evaluate_metadata reg part ~parent_html metadata;
+          (evaluate_parser_value reg part ~parent_html build_html, part)
       (* Aftertext leaf *)
       | {
           subparticles = [];
@@ -235,18 +249,18 @@ let rec evaluate_particles (reg : registry) (parent_html : string)
             { aftertext = Some aft; build_html = Some build_html; metadata; _ };
           _;
         } as part ->
-          evaluate_metadata reg part ~content:"" ~parent_html metadata;
-          let to_replace =
-            evaluate_parser_value reg part ~content:"" ~parent_html aft
-          in
+          evaluate_metadata reg part ~parent_html metadata;
+          let to_replace = evaluate_parser_value reg part ~parent_html aft in
           let to_replace =
             if String.is_empty to_replace then parent_html else to_replace
           in
           let replace_with =
-            evaluate_parser_value reg part ~content:"" ~parent_html build_html
+            evaluate_parser_value reg part ~parent_html build_html
               ~replaced_text:(Some to_replace)
           in
-          replace_first ~substring:to_replace ~new_text:replace_with parent_html
+          ( replace_first ~substring:to_replace ~new_text:replace_with
+              parent_html,
+            part )
       (* Node *)
       | {
           subparticles;
@@ -255,33 +269,54 @@ let rec evaluate_particles (reg : registry) (parent_html : string)
           _;
         } as part ->
           (* regular children *)
-          let content =
+          let content, evaluated_subparticles =
             subparticles
             |> List.filter (fun s -> Option.is_none s.parser.aftertext)
             |> evaluate_particles reg ""
           in
-          evaluate_metadata reg part ~content ~parent_html metadata;
+          let particle_with_content =
+            { part with content; subparticles = evaluated_subparticles }
+          in
+          evaluate_metadata reg particle_with_content ~parent_html metadata;
           (* the node itself *)
           let html =
-            evaluate_parser_value reg part ~content ~parent_html
+            evaluate_parser_value reg particle_with_content ~parent_html
               current_build_html
           in
           (* aftertext children *)
-          subparticles
-          |> List.filter (fun s -> Option.is_some s.parser.aftertext)
-          |> List.fold_left (fun acc p -> evaluate_particles reg acc [ p ]) html
+          let html' =
+            subparticles
+            |> List.filter (fun s -> Option.is_some s.parser.aftertext)
+            |> List.fold_left
+                 (fun acc p -> evaluate_particles reg acc [ p ] |> fst)
+                 html
+          in
+          (html', particle_with_content)
     in
     if p.parser.head then (
-      reg.head <- reg.head ^ output;
-      "")
-    else output
+      reg.head := !(reg.head) ^ output;
+      ("", evaluated_particle))
+    else (output, evaluated_particle)
   in
-  particles |> group_consecutive_by_name
-  |> List.map (fun group ->
-      match group with
-      | { parser = { list_wrap = Some w; _ }; _ } :: _ ->
-          evaluate_wrap w (List.map evaluate_particle group |> String.concat "")
-      | _ :: _ -> List.map evaluate_particle group |> String.concat ""
-      | [] -> "")
-  |> String.concat ""
+  let html, evaluated_particles =
+    particles |> group_consecutive_by_name
+    |> List.map (fun group ->
+        match group with
+        | { parser = { list_wrap = Some w; _ }; _ } :: _ ->
+            let html, particles = List.split_map evaluate_particle group in
+            let html = String.concat "" html in
+            (evaluate_wrap w html, particles)
+        | _ :: _ ->
+            let html, particles = List.split_map evaluate_particle group in
+            let html = String.concat "" html in
+            (html, particles)
+        | [] -> ("", []))
+    |> List.split
+  in
+  (String.concat "" html, List.concat evaluated_particles)
+(* |> List.fold_left *)
+(*      (fun (html, tree) (grp_html, grp_particles) -> *)
+(*        (html ^ grp_html, tree @ grp_particles)) *)
+(*      ("", []) *)
+
 (* List.map evaluate_particle particles |> String.concat " " *)

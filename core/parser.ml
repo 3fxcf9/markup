@@ -42,7 +42,7 @@ let rec collect_indented_lines (lines : string list) (level : int) :
 
 let resolve_path (reg : registry) (path : string) : string =
   (if String.starts_with ~prefix:"/" path then path
-   else Filename.concat reg.relative_path path)
+   else Filename.concat !(reg.relative_path) path)
   |> Fs.normalize_path
 
 let rec parse_document (reg : registry) (lines : string list) : particle list =
@@ -53,10 +53,10 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
     | [] -> []
     | line :: rest when String.trim line = "" -> parse_document reg rest
     | "debug on" :: rest ->
-        reg.debug <- true;
+        reg.debug := true;
         parse_document reg rest
     | "debug off" :: rest ->
-        reg.debug <- false;
+        reg.debug := false;
         parse_document reg rest
     | line :: rest
       when Filename.check_suffix line ".markup"
@@ -68,8 +68,9 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
         in
         let old_relative_path = reg.relative_path in
         let old_filename = reg.filename in
-        reg.relative_path <- Filename.dirname filepath;
-        reg.filename <- filepath |> Filename.basename |> Filename.chop_extension;
+        reg.relative_path <- ref (Filename.dirname filepath);
+        reg.filename <-
+          ref (filepath |> Filename.basename |> Filename.chop_extension);
         reg.depth <- reg.depth + 1;
         let included_particles =
           make_markup_include_particle (parse_document reg content)
@@ -83,8 +84,8 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
           match Markup_parser.parse_parser_definition lines with
           | None, rest' -> parse_document reg rest'
           | Some p, rest' -> (
-              reg.parsers <- reg.parsers @ [ p ];
-              match reg.debug with
+              reg.parsers := !(reg.parsers) @ [ p ];
+              match !(reg.debug) with
               | true -> make_parser_debug_particle p :: parse_document reg rest'
               | false -> parse_document reg rest')
         else begin
@@ -96,7 +97,8 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
               string list * particle list =
             let atoms, indented_lines =
               if parser.arg_as_content then begin
-                ( [ List.hd atoms ],
+                (* ( [ List.hd atoms ], *)
+                ( atoms,
                   (atoms |> List.tl |> String.concat " ") :: indented_lines )
               end
               else (atoms, indented_lines)
@@ -106,23 +108,36 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
             else (atoms, parse_document reg indented_lines)
           in
 
-          match try_parsers reg.parsers line with
+          match try_parsers !(reg.parsers) line with
           | `None -> parse_document reg rest'
           | `Cue parser ->
               let atoms, subparticles = collect_subparticles parser in
-              { parser; atoms; matched_groups = None; subparticles }
+              {
+                parser;
+                atoms;
+                content = "";
+                matched_groups = None;
+                subparticles;
+              }
               :: parse_document reg rest'
           | `Fallback parser ->
               let atoms, subparticles = collect_subparticles parser in
               {
                 parser;
                 atoms = "*" :: atoms;
+                content = "";
                 matched_groups = None;
                 subparticles;
               }
               :: parse_document reg rest'
           | `Pattern (parser, groups) ->
               let atoms, subparticles = collect_subparticles parser in
-              { parser; atoms; matched_groups = Some groups; subparticles }
+              {
+                parser;
+                atoms;
+                content = "";
+                matched_groups = Some groups;
+                subparticles;
+              }
               :: parse_document reg rest'
         end

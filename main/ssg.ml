@@ -37,11 +37,11 @@ let build_project input output http_root =
     markup_files
     |> List.map (fun (name, content) ->
         ( name |> Filename.remove_extension,
-          content
-          |> Markup.parse ~relative_path:(Filename.dirname name)
-               ~filename:(name |> Filename.basename |> Filename.chop_extension)
-               ~file_reader ~file_writer
-          |> snd ))
+          !(content
+           |> Markup.parse ~relative_path:(Filename.dirname name)
+                ~filename:(name |> Filename.basename |> Filename.chop_extension)
+                ~file_reader ~file_writer
+           |> snd) ))
     (* FIXME *)
   in
 

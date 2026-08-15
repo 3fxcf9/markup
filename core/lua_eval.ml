@@ -33,7 +33,40 @@ let html_escape_lua ls =
   Lua.pushstring ls escaped;
   1
 
-let eval_lua (reg : registry) (lua_func : string) (globals : string) =
+(* Custom functions end *)
+
+let lua_error_css =
+  {|<style>
+.lua-error::before {
+  content: "Lua error: ";
+  color: red;
+}
+.lua-error {
+  border: 2px solid red;
+  background-color: rgba(255,0,0,0.2);
+  border-radius: .5rem;
+  padding: .5rem;
+}
+</style>|}
+  |> String.replace_all ~sub:"\n" ~by:""
+
+let eval_lua ?markup_parser (reg : registry) (lua_func : string)
+    (globals : string) =
+  (* FIXME *)
+  let globals =
+    globals
+    ^ {|
+  find_subparticle = function (name)
+      for _, p in ipairs(this.subparticles) do
+          if p.name == name then
+              return p
+          end
+      end
+      return nil
+  end
+  |}
+  in
+
   let ls = LuaL.newstate () in
   LuaL.openlibs ls;
 
@@ -44,6 +77,14 @@ let eval_lua (reg : registry) (lua_func : string) (globals : string) =
   Lua.setglobal ls "write_file";
   Lua.pushocamlfunction ls html_escape_lua;
   Lua.setglobal ls "escape";
+
+  let () =
+    match markup_parser with
+    | None -> ()
+    | Some f ->
+        Lua.pushocamlfunction ls f;
+        Lua.setglobal ls "parse_markup"
+  in
 
   try
     (* load globals *)
@@ -75,5 +116,5 @@ let eval_lua (reg : registry) (lua_func : string) (globals : string) =
   with
   | Failure err ->
       Debug.log ~cat:Lua "ERROR: %s" err;
-      Printf.sprintf {|<div class="lua-error">%s</div>|} err
+      Printf.sprintf {|%s<div class="lua-error">%s</div>|} lua_error_css err
   | _ -> "LUA_ERROR"

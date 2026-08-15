@@ -18,9 +18,9 @@ parser named_environment
 				defprop={"definition-proposition", "Définition-proposition"},
 		})[this.matched_groups[2]])
 		if this.arg == "" then
-			return string.format('<div class="environment environment-%s">%s</div>', env_name, content)
+			return string.format('<div class="environment environment-%s">%s</div>', env_name, this.content)
 		else
-			return string.format('<div class="environment environment-%s"><div class="environment-title">%s — %s</div>%s</div>', env_name, title, this.arg, content)
+			return string.format('<div class="environment environment-%s"><div class="environment-title">%s — %s</div>%s</div>', env_name, title, this.arg, this.content)
 		end
 
 The `generic_environment` parser matches environments that do not require such a label.
@@ -36,9 +36,9 @@ parser generic_environment
 			recall="recall",
 		})[this.matched_groups[2]]
 		if this.arg == "" then
-			return string.format('<div class="environment environment-%s">%s</div>', env_name, content)
+			return string.format('<div class="environment environment-%s">%s</div>', env_name, this.content)
 		else
-			return string.format('<div class="environment environment-%s"><div class="environment-title">%s</div>%s</div>', env_name, this.arg, content)
+			return string.format('<div class="environment environment-%s"><div class="environment-title">%s</div>%s</div>', env_name, this.arg, this.content)
 		end
 
 The figure parser accepts `left` or `right` as subparticles to respectively make the figure float left or right.
@@ -59,12 +59,12 @@ parser figure
 				end
 		end
 		if this.arg == "" then
-			return string.format('<figure%s>%s</figure>', attr, content)
+			return string.format('<figure%s>%s</figure>', attr, this.content)
 		else
-			return string.format('<figure%s>%s<figcaption>%s</figcaption></figure>', attr, content, this.arg)
+			return string.format('<figure%s>%s<figcaption>%s</figcaption></figure>', attr, this.content, this.arg)
 		end
 
 parser fold
-	build_html lua return string.format('<details><summary>%s</summary>%s</details>', this.arg == "" and "View more" or this.arg, content)
+	build_html lua return string.format('<details><summary>%s</summary>%s</details>', this.arg == "" and "View more" or this.arg, this.content)
 
 
