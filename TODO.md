@@ -2,13 +2,11 @@
 
 - Write builtin parsers
 - optimize ?
-- use content instead of arg for raw and parser debug parsers
 - inline markup
 
 ### Parser syntax
 
 - allow markup usage in build_html
-- include files
 - references
 - `ctx` lua table
   - important ?
@@ -32,3 +30,5 @@
 - external_metadata example
 - note about tab indentation
 - cli usage
+- lua exposed functions
+  - parse_markup parsed after the whole document -> no parser definition

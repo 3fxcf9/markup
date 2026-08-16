@@ -49,7 +49,8 @@ let raw_parser =
     aftertext = None;
     list_wrap = None;
     (* unescaped *)
-    build_html = Some (LuaFunction "return table.concat(this.atoms, ' ', 2)");
+    (* build_html = Some (LuaFunction "return table.concat(this.atoms, ' ', 2)"); *)
+    build_html = Some (ReplaceString "$content");
     head = false;
     raw = false;
     metadata = None;
@@ -99,7 +100,7 @@ let parser_debug_parser =
       Some
         (LuaFunction
            ({|return string.format('|} ^ parser_debug_css
-          ^ {|<div class="parser-debug"><div class="parser-name">%s</div><div class="parser-code"><pre><code>%s</code></pre></div></div>', this.atoms[2], escape(table.concat(this.atoms, ' ', 3)))|}
+          ^ {|<div class="parser-debug"><div class="parser-name">%s</div><div class="parser-code"><pre><code>%s</code></pre></div></div>', this.atoms[2], escape(this.content))|}
            ));
     head = false;
     raw = false;
@@ -172,11 +173,10 @@ type particle = {
 }
 
 let make_raw_particle (lines : string list) : particle =
-  let raw = lines |> String.concat "\n" |> String.split_on_char ' ' in
   {
     parser = raw_parser;
-    atoms = "" :: raw;
-    content = "";
+    atoms = "" :: [];
+    content = String.concat "\n" lines;
     matched_groups = None;
     subparticles = [];
   }
@@ -193,8 +193,8 @@ let make_markup_include_particle (subparticles : particle list) : particle =
 let make_parser_debug_particle (parser : parser_def) : particle =
   {
     parser = parser_debug_parser;
-    atoms = "" :: parser.name :: String.split_on_char ' ' (pp_parser_def parser);
-    content = "";
+    atoms = [ ""; parser.name ];
+    content = pp_parser_def parser;
     matched_groups = None;
     subparticles = [];
   }
