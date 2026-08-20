@@ -29,7 +29,7 @@ let write_file_to_disk reg ls =
 
 let html_escape_lua ls =
   let s = LuaL.checkstring ls 1 in
-  let escaped = html_escape s in
+  let escaped = Utils.html_escape s in
   Lua.pushstring ls escaped;
   1
 

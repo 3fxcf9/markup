@@ -115,22 +115,26 @@ let group_consecutive_by_name (particles : particle list) =
   in
   match particles with [] -> [] | p :: ps -> aux [] [ p ] ps
 
-let rec evaluate_parser_value ?(replaced_text : string option = None)
-    (reg : registry) (p : particle) ~(parent_html : string)
-    (pval : parser_value) : string =
+let rec evaluate_parser_value
+    ?(aftertext_matched_groups : string list option = None)
+    ?(replaced_text : string option = None) (reg : registry) (p : particle)
+    ~(parent_html : string) (pval : parser_value) : string =
   match pval with
   | ReplaceString expr -> (
       try
         expr
         |> String.replace_all ~sub:"$content" ~by:p.content
         |> String.replace_all ~sub:"$arg"
-             ~by:(p.atoms |> List.tl |> String.concat " " |> html_escape)
+             ~by:(p.atoms |> List.tl |> String.concat " ")
         |> replace_list_access "atoms" p.atoms
         |> replace_assoc_list_access "metadata" !(reg.metadata)
         |> replace_external_metadata_access reg
         |> (p.matched_groups
            |> Option.fold ~none:Fun.id ~some:(fun grp ->
                replace_list_access "matched_groups" grp))
+        |> (aftertext_matched_groups
+           |> Option.fold ~none:Fun.id ~some:(fun grp ->
+               replace_list_access "aftertext_matched_groups" grp))
         |> (replaced_text
            |> Option.fold ~none:Fun.id ~some:(fun r ->
                String.replace_all ~sub:"$replaced" ~by:r ~start:0))
@@ -183,6 +187,7 @@ let rec evaluate_parser_value ?(replaced_text : string option = None)
             ctx = %s
             parent_html = %s
             replaced = %s
+            aftertext_matched_groups = %s
             metadata = %s
             external_metadata = %s
             relative_path = %s
@@ -191,6 +196,11 @@ let rec evaluate_parser_value ?(replaced_text : string option = None)
           (particle_lua_self p) "nil"
           (escape_lua_str parent_html)
           (Option.fold ~none:"nil" ~some:escape_lua_str replaced_text)
+          (Option.fold ~none:"nil"
+             ~some:(fun x ->
+               x |> List.map escape_lua_str |> String.concat ", "
+               |> Printf.sprintf "{%s}")
+             aftertext_matched_groups)
           metadata external_metadata
           (escape_lua_str !(reg.relative_path))
           (escape_lua_str !(reg.filename))
@@ -248,19 +258,52 @@ and evaluate_particles (reg : registry) (parent_html : string)
           parser =
             { aftertext = Some aft; build_html = Some build_html; metadata; _ };
           _;
-        } as part ->
+        } as part -> (
           evaluate_metadata reg part ~parent_html metadata;
-          let to_replace = evaluate_parser_value reg part ~parent_html aft in
-          let to_replace =
-            if String.is_empty to_replace then parent_html else to_replace
-          in
-          let replace_with =
-            evaluate_parser_value reg part ~parent_html build_html
-              ~replaced_text:(Some to_replace)
-          in
-          ( replace_first ~substring:to_replace ~new_text:replace_with
-              parent_html,
-            part )
+          match aft with
+          | `Pattern pattern -> begin
+              (* Only replace if after an even number of backticks to skip code. Sadly hardcoded. *)
+              let even_backticks_and_dollars_before str pos =
+                let count = ref 0 in
+                let count' = ref 0 in
+                for i = 0 to pos - 1 do
+                  if str.[i] = '`' then incr count;
+                  if str.[i] = '$' then incr count'
+                done;
+                !count mod 2 = 0 && !count' mod 2 = 0
+              in
+              let html =
+                Str.global_substitute (Str.regexp pattern)
+                  (fun parent_html ->
+                    let start = Str.match_beginning () in
+
+                    if even_backticks_and_dollars_before parent_html start then begin
+                      let groups = Utils.all_matching_groups parent_html in
+
+                      evaluate_parser_value reg part ~parent_html build_html
+                        ~aftertext_matched_groups:(Some groups)
+                        ~replaced_text:(Some (List.hd groups))
+                    end
+                    else Str.matched_string parent_html)
+                  parent_html
+              in
+              (html, part)
+            end
+          | `ParserValue pval -> begin
+              let to_replace =
+                evaluate_parser_value reg part ~parent_html pval
+              in
+              let to_replace =
+                if String.is_empty to_replace then parent_html else to_replace
+              in
+              let replace_with =
+                evaluate_parser_value reg part ~parent_html build_html
+                  ~replaced_text:(Some to_replace)
+              in
+              ( replace_first ~substring:to_replace ~new_text:replace_with
+                  parent_html,
+                part )
+            end)
       (* Node *)
       | {
           subparticles;

@@ -7,17 +7,6 @@ let indent_level (s : string) : int =
   done;
   !i
 
-(** [all_matching_groups s] is the list of all groups (including group 0, the
-    entire match) from the most recent successful regex match on [s]. *)
-let all_matching_groups (s : string) : string list =
-  let rec aux i acc =
-    try
-      let g = Str.matched_group i s in
-      aux (i + 1) (g :: acc)
-    with _ -> List.rev acc
-  in
-  aux 0 []
-
 let rec try_parsers (parsers : parser_def list) (line : string) =
   let open Str in
   match parsers with
@@ -26,7 +15,7 @@ let rec try_parsers (parsers : parser_def list) (line : string) =
       `Cue parser
   | ({ matching = `Pattern pattern; _ } as parser) :: rest
     when string_match (regexp ("^" ^ pattern)) line 0 ->
-      let groups = all_matching_groups line in
+      let groups = Utils.all_matching_groups line in
       `Pattern (parser, groups)
   | _ :: rest -> try_parsers rest line
   | [] -> `Fallback fallback_parser
@@ -104,12 +93,21 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
               else (atoms, indented_lines)
             in
 
+            let indented_lines =
+              match parser with
+              | { name = "paragraph"; _ } -> "inline_markup" :: indented_lines
+              | _ -> indented_lines
+            in
+
             if parser.raw then (atoms, [ make_raw_particle indented_lines ])
             else (atoms, parse_document reg indented_lines)
           in
 
           match try_parsers !(reg.parsers) line with
           | `None -> parse_document reg rest'
+          | `Cue { markup = Some m; _ } ->
+              let new_lines = String.split_on_char '\n' m in
+              parse_document reg (new_lines @ rest')
           | `Cue parser ->
               let atoms, subparticles = collect_subparticles parser in
               {
@@ -130,6 +128,9 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
                 subparticles;
               }
               :: parse_document reg rest'
+          | `Pattern ({ markup = Some m; _ }, _) ->
+              let new_lines = String.split_on_char '\n' m in
+              parse_document reg (new_lines @ rest')
           | `Pattern (parser, groups) ->
               let atoms, subparticles = collect_subparticles parser in
               {

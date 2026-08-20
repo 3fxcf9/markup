@@ -1,24 +1,10 @@
-(* ---------- UTILS ---------- *)
-let html_escape s =
-  let b = Buffer.create (String.length s) in
-  String.iter
-    (function
-      | '&' -> Buffer.add_string b "&amp;"
-      | '<' -> Buffer.add_string b "&lt;"
-      | '>' -> Buffer.add_string b "&gt;"
-      | '"' -> Buffer.add_string b "&quot;"
-      | '\'' -> Buffer.add_string b "&#39;"
-      | c -> Buffer.add_char b c)
-    s;
-  Buffer.contents b
-
 (* ---------- PARSER ---------- *)
 type parser_value = ReplaceString of string | LuaFunction of string
 
 type parser_def = {
   name : string;
   matching : [ `Cue of string | `Pattern of string ];
-  aftertext : parser_value option;
+  aftertext : [ `ParserValue of parser_value | `Pattern of string ] option;
       (* None or the text to replace in the parent node *)
   raw : bool;
   head : bool;
@@ -26,6 +12,7 @@ type parser_def = {
   arg_as_content : bool;
   list_wrap : string option;
   build_html : parser_value option;
+  markup : string option;
 }
 
 let fallback_parser =
@@ -36,6 +23,7 @@ let fallback_parser =
     list_wrap = None;
     (* escaped *)
     build_html = Some (ReplaceString "<p>$arg</p>");
+    markup = None;
     head = false;
     raw = false;
     metadata = None;
@@ -51,6 +39,7 @@ let raw_parser =
     (* unescaped *)
     (* build_html = Some (LuaFunction "return table.concat(this.atoms, ' ', 2)"); *)
     build_html = Some (ReplaceString "$content");
+    markup = None;
     head = false;
     raw = false;
     metadata = None;
@@ -65,6 +54,7 @@ let markup_file_include_parser =
     aftertext = None;
     list_wrap = None;
     build_html = Some (ReplaceString "$content");
+    markup = None;
     head = false;
     raw = false;
     metadata = None;
@@ -102,6 +92,7 @@ let parser_debug_parser =
            ({|return string.format('|} ^ parser_debug_css
           ^ {|<div class="parser-debug"><div class="parser-name">%s</div><div class="parser-code"><pre><code>%s</code></pre></div></div>', this.atoms[2], escape(this.content))|}
            ));
+    markup = None;
     head = false;
     raw = false;
     metadata = None;
@@ -120,7 +111,14 @@ let print_parser (parser : parser_def) =
     (match parser.matching with
     | `Cue cue -> "cue: " ^ cue
     | `Pattern p -> "pattern: " ^ p);
-  print_parser_value_option "aftertext" parser.aftertext;
+  let () =
+    match parser.aftertext with
+    | Some (`ParserValue pval) ->
+        print_parser_value_option "aftertext" (Some pval)
+    | Some (`Pattern pattern) ->
+        Printf.printf "aftertext: \x1B[94m[PATTERN]\x1B[3;90m %s\n" pattern
+    | None -> ()
+  in
   print_parser_value_option "build_html" parser.build_html;
   Option.iter (fun s -> Printf.printf "list_wrap: %s\n" s) parser.list_wrap;
   if parser.raw then print_endline "raw"
@@ -131,6 +129,10 @@ let pp_option pp = function None -> "None" | Some x -> "Some (" ^ pp x ^ ")"
 let pp_parser_value = function
   | ReplaceString s -> Printf.sprintf "ReplaceString %S" s
   | LuaFunction s -> Printf.sprintf "LuaFunction %S" s
+
+let pp_aftertext pp = function
+  | `ParserValue s -> Printf.sprintf "`ParserValue (%s)" (pp s)
+  | `Pattern s -> Printf.sprintf "`Pattern %S" s
 
 let pp_matching = function
   | `Cue s -> Printf.sprintf "`Cue %S" s
@@ -148,17 +150,19 @@ let pp_parser_def ?(indent = 0) p =
 %s  arg_as_content = %b;
 %s  list_wrap = %s;
 %s  build_html = %s;
+%s  markup = %s;
 %s  metadata = %s;
 %s}|}
     i
     i p.name
     i (pp_matching p.matching)
-    i (pp_option pp_parser_value p.aftertext)
+    i (pp_option (pp_aftertext pp_parser_value) p.aftertext)
     i p.raw
     i p.head
     i p.arg_as_content
     i (pp_option pp_string p.list_wrap)
     i (pp_option pp_parser_value p.build_html)
+    i (pp_option pp_string p.markup)
     i (pp_option pp_parser_value p.metadata)
     i [@@ocamlformat "disable"]
 

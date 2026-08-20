@@ -64,8 +64,17 @@ let parse_parser_definition (lines : string list) :
             | None, Some pattern -> Some (`Pattern pattern)
             | None, None -> Some (`Cue name)
           in
-          let aftertext = get_value "aftertext" in
+          let aftertext =
+            List.assoc_opt "aftertext" fields
+            |> Option.map (fun x ->
+                if starts_with ~prefix:"pattern" x then
+                  `Pattern (sub x 8 (length x - 8))
+                else if starts_with ~prefix:"lua" x then
+                  `ParserValue (LuaFunction (sub x 4 (length x - 4)))
+                else `ParserValue (ReplaceString x))
+          in
           let build_html = get_value "build_html" in
+          let markup = List.assoc_opt "markup" fields in
           let metadata = get_value "metadata" in
           let list_wrap = List.assoc_opt "list_wrap" fields in
           let head =
@@ -93,6 +102,7 @@ let parse_parser_definition (lines : string list) :
                     aftertext;
                     list_wrap;
                     build_html;
+                    markup;
                     head;
                     raw;
                     metadata;

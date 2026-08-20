@@ -1,0 +1,43 @@
+debug on
+
+title Inline parsers
+
+title_in_head
+
+This is a collection of inline parsers. They are aftertext parsers, using regular expressions to replace inline markdown syntax. The `inline_markup` parser gathers all of them and is automatically set as a subparticle of the paragraph parser (see the `collect_subparticles` function in `parser.ml`). This way, inline marking can be used in paragraphs without additional cost.
+
+parser inline_bold
+	aftertext pattern \*\([^*]*\)\*
+	build_html <strong>$aftertext_matched_groups[1]</strong>
+parser inline_italic
+	aftertext pattern _\([^_]*\)_
+	build_html <i>$aftertext_matched_groups[1]</i>
+parser inline_highlight
+	aftertext pattern ==\([^=]*\)==
+	build_html <mark>$aftertext_matched_groups[1]</mark>
+parser inline_underline
+	aftertext pattern \+\+\([^+]*\)\+\+
+	build_html <u>$aftertext_matched_groups[1]</u>
+parser inline_strikethrough
+	aftertext pattern ~~\([^~]*\)~~
+	build_html <s>$aftertext_matched_groups[1]</s>
+
+Please do not change the following two parsers, as the inline replacement strategy assumes this implementation (it only replaces matches that are prefixed by a string containing an even number of backticks and an even number of dollars).
+parser inline_math
+	aftertext pattern \$\([^$]*\)\$
+	build_html <code class="katex-inline">$aftertext_matched_groups[1]</code>
+parser inline_code
+	aftertext pattern `\([^`]*\)`
+	build_html lua return string.format('<code>%s</code>', escape(aftertext_matched_groups[2]))
+
+parser inline_markup
+	markup
+		inline_bold
+		inline_italic
+		inline_highlight
+		inline_underline
+		inline_strikethrough
+		// The two following parsers must be last
+		inline_math
+		inline_code
+

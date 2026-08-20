@@ -5,7 +5,7 @@ title Flashcards parsers
 title_in_head
 
 The flashcards parser handles all of these syntaxes:
-	inline_code flashcards
+	aftertext_code flashcards
 
 code markup
 	Q: <front> A: <back>
