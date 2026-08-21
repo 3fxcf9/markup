@@ -1,3 +1,5 @@
+let ( let* ) o f = match o with None -> None | Some x -> f x
+
 (* ---------- PARSER ---------- *)
 type parser_value = ReplaceString of string | LuaFunction of string
 

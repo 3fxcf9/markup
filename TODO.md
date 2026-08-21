@@ -5,11 +5,9 @@
 
 ### Parser syntax
 
-- allow markup usage in build_html
 - references
 - `ctx` lua table
   - important ?
-- parser extend
 - allow empty value
 
 ### Parser ideas
@@ -34,3 +32,4 @@
   - parse_markup parsed after the whole document -> no parser definition
 - builtin parsers (by default, only parser definitions are seen but can be parsed as markup files. Just create a new file)
 - update aftertext accepting a pattern
+- extends

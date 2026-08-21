@@ -70,7 +70,9 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
         included_particles :: parse_document reg rest
     | line :: rest ->
         if String.starts_with ~prefix:"parser " line then
-          match Markup_parser.parse_parser_definition lines with
+          match
+            Markup_parser.parse_parser_definition ~parsers:!(reg.parsers) lines
+          with
           | None, rest' -> parse_document reg rest'
           | Some p, rest' -> (
               reg.parsers := !(reg.parsers) @ [ p ];

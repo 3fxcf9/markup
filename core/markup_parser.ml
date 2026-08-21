@@ -33,7 +33,7 @@ let rec parse_parser_fields (lines : string list) :
         ((key, value) :: assoc, rest')
       else ([], lines)
 
-let parse_parser_definition (lines : string list) :
+let parse_parser_definition ~(parsers : parser_def list) (lines : string list) :
     parser_def option * string list =
   match lines with
   | [] -> (None, [])
@@ -56,13 +56,13 @@ let parse_parser_definition (lines : string list) :
                   LuaFunction (sub x 3 (length x - 3))
                 else ReplaceString x)
           in
-          let matching_opt =
+          let matching =
             match
               (List.assoc_opt "cue" fields, List.assoc_opt "pattern" fields)
             with
-            | Some cue, _ -> Some (`Cue cue)
-            | None, Some pattern -> Some (`Pattern pattern)
-            | None, None -> Some (`Cue name)
+            | Some cue, _ -> `Cue cue
+            | None, Some pattern -> `Pattern pattern
+            | None, None -> `Cue name
           in
           let aftertext =
             List.assoc_opt "aftertext" fields
@@ -92,31 +92,53 @@ let parse_parser_definition (lines : string list) :
             | Some "true" -> true
             | _ -> false
           in
-          match matching_opt with
-          | None -> (None, rest')
-          | Some matching ->
-              ( Some
-                  {
-                    name;
-                    matching;
-                    aftertext;
-                    list_wrap;
-                    build_html;
-                    markup;
-                    head;
-                    raw;
-                    metadata;
-                    arg_as_content;
-                  },
-                rest' )
+
+          let parser =
+            let parent =
+              let* parser_name = List.assoc_opt "extends" fields in
+              List.find_opt (fun p -> p.name = parser_name) parsers
+            in
+            match parent with
+            | None ->
+                {
+                  name;
+                  matching;
+                  aftertext;
+                  list_wrap;
+                  build_html;
+                  markup;
+                  head;
+                  raw;
+                  metadata;
+                  arg_as_content;
+                }
+            | Some p ->
+                let ( ||* ) x default =
+                  match x with Some _ -> x | None -> default
+                in
+                {
+                  name;
+                  matching;
+                  aftertext = aftertext ||* p.aftertext;
+                  list_wrap = list_wrap ||* p.list_wrap;
+                  build_html = build_html ||* p.build_html;
+                  markup = markup ||* p.markup;
+                  head = head || p.head;
+                  raw = raw || p.raw;
+                  metadata = metadata ||* p.metadata;
+                  arg_as_content = arg_as_content || p.arg_as_content;
+                }
+          in
+
+          (Some parser, rest')
         end
       end
 
-let rec parse_parser_file (lines : string list) : parser_def list =
+let rec parse_parser_file ?(acc = []) (lines : string list) : parser_def list =
   match lines with
-  | [] -> []
+  | [] -> List.rev acc
   | line :: rest when String.starts_with ~prefix:"parser " line -> (
-      match parse_parser_definition lines with
-      | None, rest' -> parse_parser_file rest'
-      | Some p, rest' -> p :: parse_parser_file rest')
-  | _ :: rest -> parse_parser_file rest
+      match parse_parser_definition ~parsers:acc lines with
+      | None, rest' -> parse_parser_file ~acc rest'
+      | Some p, rest' -> parse_parser_file ~acc:(p :: acc) rest')
+  | _ :: rest -> parse_parser_file ~acc rest

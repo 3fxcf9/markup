@@ -1,5 +1,3 @@
-let ( let* ) o f = match o with Error _ -> None | Ok x -> f x
-
 let rec list_markup_files root path : string list =
   Fs.list_directory root path
   |> List.concat_map (function
