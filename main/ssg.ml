@@ -17,15 +17,23 @@ let build_project input output http_root =
   in
 
   let file_reader relative_path =
-    Debug.log ~cat:IO "File reader called on file %s" relative_path;
+    Debug.log ~cat:IO "\027[95mFile reader called on file %s\027[0m"
+      relative_path;
     let path = Filename.concat input relative_path in
     try Some (In_channel.with_open_bin path In_channel.input_all)
     with _ -> None
   in
   let file_writer relative_path contents =
-    Debug.log ~cat:IO "File writer called on file %s" relative_path;
+    Debug.log ~cat:IO "\027[95mFile writer called on file %s\027[0m"
+      relative_path;
     let path = Filename.concat output relative_path in
     Fs.write_file path contents
+  in
+  let fs_copy src dst =
+    Debug.log ~cat:IO "\027[95mCopy called: %s -> %s\027[0m" src dst;
+    let src = Filename.concat input src in
+    let dst = Filename.concat output dst in
+    Fs.copy src dst
   in
 
   (* Two pass approach. *)
@@ -38,7 +46,7 @@ let build_project input output http_root =
           !(content
            |> Markup.parse ~relative_path:(Filename.dirname name)
                 ~filename:(name |> Filename.basename |> Filename.chop_extension)
-                ~file_reader ~file_writer
+                ~file_reader ~file_writer ~fs_copy
            |> snd) ))
     (* FIXME *)
   in
@@ -67,7 +75,7 @@ let build_project input output http_root =
         |> Markup.parse ~external_metadata
              ~relative_path:(Filename.dirname name)
              ~filename:(name |> Filename.basename |> Filename.chop_extension)
-             ~file_reader ~file_writer
+             ~file_reader ~file_writer ~fs_copy
         |> fst |> Fs.write_file output_path |> ignore)
 
 let build_single_file input output http_root =

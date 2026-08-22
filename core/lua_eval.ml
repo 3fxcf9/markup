@@ -8,6 +8,7 @@ let read_file_from_disk reg ls =
   let path = LuaL.checkstring ls 1 in
   match reg.file_reader path with
   | None ->
+      Debug.error "Read error: file not found";
       Lua.pushnil ls;
       Lua.pushstring ls "File not found";
       2
@@ -23,14 +24,32 @@ let write_file_to_disk reg ls =
       Lua.pushboolean ls true;
       1
   | Error err ->
+      Debug.error "Write error: %s" err;
       Lua.pushboolean ls false;
       Lua.pushstring ls err;
       2
+
+let copy_file_or_folder reg ls =
+  let src = LuaL.checkstring ls 1 in
+  let dest = LuaL.checkstring ls 2 in
+  match reg.fs_copy src dest with
+  | Ok () ->
+      Lua.pushboolean ls true;
+      1
+  | Error err ->
+      Debug.error "Copy error: %s" err;
+      Lua.pushboolean ls false;
+      1
 
 let html_escape_lua ls =
   let s = LuaL.checkstring ls 1 in
   let escaped = Utils.html_escape s in
   Lua.pushstring ls escaped;
+  1
+
+let hash ls =
+  let input = LuaL.checkstring ls 1 in
+  input |> Hashtbl.hash |> string_of_int |> Lua.pushstring ls;
   1
 
 (* Custom functions end *)
@@ -75,8 +94,12 @@ let eval_lua ?markup_parser (reg : registry) (lua_func : string)
   Lua.setglobal ls "read_file";
   Lua.pushocamlfunction ls (write_file_to_disk reg);
   Lua.setglobal ls "write_file";
+  Lua.pushocamlfunction ls (copy_file_or_folder reg);
+  Lua.setglobal ls "fs_copy";
   Lua.pushocamlfunction ls html_escape_lua;
   Lua.setglobal ls "escape";
+  Lua.pushocamlfunction ls hash;
+  Lua.setglobal ls "hash";
 
   let () =
     match markup_parser with

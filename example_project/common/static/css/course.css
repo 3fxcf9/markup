@@ -1,0 +1,1122 @@
+/****************************************/
+/*               Layout                 */
+/****************************************/
+
+@page {
+  size: A4;
+  margin: 20mm;
+}
+
+html {
+  font-size: 140%;
+  text-size-adjust: none;
+}
+
+@media screen and (max-width: 1000px) {
+  html {
+    font-size: 125%;
+    text-size-adjust: none;
+  }
+}
+
+@media screen and (max-width: 700px) {
+  html {
+    font-size: 115%;
+    text-size-adjust: none;
+  }
+}
+
+@media print {
+  html,
+  body {
+    width: 210mm;
+    height: 297mm;
+    font-size: 100%;
+  }
+}
+
+body {
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+
+  color: var(--text-color);
+  background-color: var(--bg-color);
+}
+
+@media screen and (max-width: 1000px) {
+  body {
+    display: block;
+  }
+}
+
+.menu-toggle {
+  position: fixed;
+  top: 0;
+  right: 0;
+  padding: 1rem;
+  z-index: 1000;
+  cursor: pointer;
+  filter: drop-shadow(0 0 4px var(--bg-color));
+
+  & svg {
+    color: var(--text-color);
+  }
+
+  & .icon-close {
+    display: none;
+  }
+
+  &.opened .icon-menu {
+    display: none;
+  }
+
+  &.opened .icon-close {
+    display: block;
+  }
+}
+
+@media screen and (min-width: 1000px) {
+  .menu-toggle {
+    display: none;
+  }
+}
+@media print {
+  .menu-toggle {
+    display: none;
+  }
+}
+
+.left {
+  width: min(25vw, 400px);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--subtext-color);
+  padding: 2rem;
+
+  /* To allow the visibility selector to be at the bottom with margin-top: auto */
+  display: flex;
+  flex-direction: column;
+}
+
+@media screen and (max-width: 1000px) {
+  .left {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: var(--bg-color);
+    z-index: 10;
+    display: none;
+
+    &.opened {
+      display: flex;
+    }
+  }
+}
+
+@media print {
+  .left {
+    display: none;
+  }
+}
+
+.right {
+  flex: 1;
+  padding: 10vh 10vw;
+  overflow: hidden;
+}
+
+@media screen and (min-width: 1800px) {
+  .right {
+    padding: 10vh 15vw;
+  }
+}
+
+@media screen and (max-width: 1000px) {
+  .right {
+    padding: 3rem 1.5rem;
+  }
+}
+
+@media screen and (max-width: 700px) {
+  .right {
+    padding: 2rem 1rem;
+  }
+}
+
+@media print {
+  .right {
+    padding: 0;
+  }
+}
+
+/****************************************/
+/*               Elements               */
+/****************************************/
+
+/* Compact lists */
+@counter-style compact-roman {
+  system: additive;
+  additive-symbols:
+    "m" 1000,
+    "cm" 900,
+    "d" 500,
+    "cd" 400,
+    "c" 100,
+    "xc" 90,
+    "l" 50,
+    "xl" 40,
+    "x" 10,
+    "ix" 9,
+    "v" 5,
+    "iv" 4,
+    "i" 1;
+  suffix: ") ";
+  prefix: "(";
+}
+
+.right {
+  font-family: "Computer Modern Serif";
+
+  /* Font size */
+  p,
+  .environment {
+    font-size: 1rem;
+  }
+
+  @media print {
+    body {
+      font-size: 3.8mm;
+    }
+  }
+
+  p {
+    line-height: 200%;
+    margin: 1rem 0;
+  }
+
+  @media print {
+    p {
+      line-height: 150%;
+    }
+  }
+
+  @media screen and (min-width: 1000px) {
+    p {
+      text-align: justify;
+    }
+  }
+
+  .anchor {
+    scroll-margin-top: 20vh;
+  }
+
+  /*************** Headings ***************/
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    scroll-margin-top: 20vh;
+  }
+
+  h2 {
+    margin-top: 2rem;
+  }
+
+  h3 {
+    margin-top: 1.5rem;
+  }
+
+  h4 {
+    margin-top: 1rem;
+  }
+
+  h5,
+  h6 {
+    margin-top: 0.8rem;
+  }
+
+  a {
+    color: var(--links-color);
+  }
+
+  /*************** Blockquote ***************/
+  /*
+* <div class="blockquote">
+*   <blockquote></blockquote>
+*   <cite>Author, date</cite>
+* </div> */
+  div.blockquote {
+    padding-left: 2.5rem;
+  }
+
+  blockquote {
+    position: relative;
+    margin-right: 2.5rem;
+  }
+
+  blockquote > *:first-child {
+    margin-top: 0;
+  }
+
+  blockquote > *:last-child {
+    margin-bottom: 0;
+  }
+
+  blockquote::before,
+  blockquote::after {
+    content: "";
+
+    display: inline-block;
+    width: 2em;
+    height: 2em;
+
+    position: absolute;
+    background-color: var(--subtext-color);
+  }
+
+  blockquote::before {
+    top: 0;
+    left: -2.5rem;
+
+    -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4.58341 17.3211C3.55316 16.2274 3 15 3 13.0103C3 9.51086 5.45651 6.37366 9.03059 4.82318L9.92328 6.20079C6.58804 8.00539 5.93618 10.346 5.67564 11.822C6.21263 11.5443 6.91558 11.4466 7.60471 11.5105C9.40908 11.6778 10.8312 13.159 10.8312 15C10.8312 16.933 9.26416 18.5 7.33116 18.5C6.2581 18.5 5.23196 18.0095 4.58341 17.3211ZM14.5834 17.3211C13.5532 16.2274 13 15 13 13.0103C13 9.51086 15.4565 6.37366 19.0306 4.82318L19.9233 6.20079C16.588 8.00539 15.9362 10.346 15.6756 11.822C16.2126 11.5443 16.9156 11.4466 17.6047 11.5105C19.4091 11.6778 20.8312 13.159 20.8312 15C20.8312 16.933 19.2642 18.5 17.3312 18.5C16.2581 18.5 15.232 18.0095 14.5834 17.3211Z"/></svg>')
+      no-repeat center/contain;
+    mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4.58341 17.3211C3.55316 16.2274 3 15 3 13.0103C3 9.51086 5.45651 6.37366 9.03059 4.82318L9.92328 6.20079C6.58804 8.00539 5.93618 10.346 5.67564 11.822C6.21263 11.5443 6.91558 11.4466 7.60471 11.5105C9.40908 11.6778 10.8312 13.159 10.8312 15C10.8312 16.933 9.26416 18.5 7.33116 18.5C6.2581 18.5 5.23196 18.0095 4.58341 17.3211ZM14.5834 17.3211C13.5532 16.2274 13 15 13 13.0103C13 9.51086 15.4565 6.37366 19.0306 4.82318L19.9233 6.20079C16.588 8.00539 15.9362 10.346 15.6756 11.822C16.2126 11.5443 16.9156 11.4466 17.6047 11.5105C19.4091 11.6778 20.8312 13.159 20.8312 15C20.8312 16.933 19.2642 18.5 17.3312 18.5C16.2581 18.5 15.232 18.0095 14.5834 17.3211Z"/></svg>')
+      no-repeat center/contain;
+  }
+
+  blockquote::after {
+    bottom: 0;
+    right: -2.5rem;
+
+    -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.4167 6.67891C20.4469 7.77257 21.0001 9 21.0001 10.9897C21.0001 14.4891 18.5436 17.6263 14.9695 19.1768L14.0768 17.7992C17.4121 15.9946 18.0639 13.6539 18.3245 12.178C17.7875 12.4557 17.0845 12.5533 16.3954 12.4895C14.591 12.3222 13.1689 10.8409 13.1689 9C13.1689 7.067 14.7359 5.5 16.6689 5.5C17.742 5.5 18.7681 5.99045 19.4167 6.67891ZM9.41669 6.67891C10.4469 7.77257 11.0001 9 11.0001 10.9897C11.0001 14.4891 8.54359 17.6263 4.96951 19.1768L4.07682 17.7992C7.41206 15.9946 8.06392 13.6539 8.32447 12.178C7.78747 12.4557 7.08452 12.5533 6.39539 12.4895C4.59102 12.3222 3.16895 10.8409 3.16895 9C3.16895 7.067 4.73595 5.5 6.66895 5.5C7.742 5.5 8.76814 5.99045 9.41669 6.67891Z"></path></svg>')
+      no-repeat center/contain;
+    mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.4167 6.67891C20.4469 7.77257 21.0001 9 21.0001 10.9897C21.0001 14.4891 18.5436 17.6263 14.9695 19.1768L14.0768 17.7992C17.4121 15.9946 18.0639 13.6539 18.3245 12.178C17.7875 12.4557 17.0845 12.5533 16.3954 12.4895C14.591 12.3222 13.1689 10.8409 13.1689 9C13.1689 7.067 14.7359 5.5 16.6689 5.5C17.742 5.5 18.7681 5.99045 19.4167 6.67891ZM9.41669 6.67891C10.4469 7.77257 11.0001 9 11.0001 10.9897C11.0001 14.4891 8.54359 17.6263 4.96951 19.1768L4.07682 17.7992C7.41206 15.9946 8.06392 13.6539 8.32447 12.178C7.78747 12.4557 7.08452 12.5533 6.39539 12.4895C4.59102 12.3222 3.16895 10.8409 3.16895 9C3.16895 7.067 4.73595 5.5 6.66895 5.5C7.742 5.5 8.76814 5.99045 9.41669 6.67891Z"></path></svg>')
+      no-repeat center/contain;
+  }
+
+  @media print {
+    blockquote::before,
+    blockquote::after {
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+  }
+
+  cite {
+    display: block;
+    text-align: right;
+    margin-right: 0.5rem;
+    margin-top: 0.5rem;
+    font-style: italic;
+    font-size: smaller;
+  }
+
+  cite::before {
+    content: "— ";
+  }
+
+  mark {
+    background-color: var(--subtext-color);
+    color: var(--text-color);
+    /* background-color: var(--accent-color); */
+    /* color: var(--on-accent-color); */
+  }
+
+  /*************** code ***************/
+  code {
+    tab-size: 2;
+    color: var(--code-color);
+    background-color: var(--code-bg-color);
+    padding: 0 0.2rem;
+    font-size: 0.8rem;
+  }
+
+  pre {
+    padding: 1rem 0;
+    padding-left: 1.5rem;
+    background-color: var(--code-bg-color);
+    border-left: 3px solid var(--accent-color);
+    color: var(--code-color);
+    break-inside: auto;
+    white-space: pre;
+    font-family: monospace;
+    line-height: 1.6;
+    word-wrap: break-word;
+  }
+
+  @media print {
+    pre {
+      border-color: var(--subtext-color);
+      padding: 0.5rem 1rem;
+    }
+  }
+
+  pre > code {
+    padding: 0;
+    background-color: transparent;
+    display: block;
+  }
+
+  /************** hr ***************/
+  hr {
+    margin: 2rem 0;
+    border-top: 2px solid var(--subtext-color);
+  }
+
+  hr.style-compact {
+    margin: 0.8rem 0;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .style-compact::after {
+    content: "~";
+    color: var(--subtext-color);
+    font-size: 2rem;
+    line-height: 1;
+    vertical-align: middle;
+    display: inline-block;
+    height: 13px;
+    overflow: hidden;
+  }
+
+  hr.style-sawteeth {
+    height: 30px;
+    border: none;
+    background:
+      linear-gradient(-135deg, var(--subtext-color) 20px, rgba(0, 0, 0, 0) 0) 0
+        5px,
+      linear-gradient(135deg, var(--subtext-color) 20px, var(--bg-color) 0) 0
+        5px;
+    background-color: rgba(0, 0, 0, 0);
+    background-position: center bottom;
+    background-repeat: repeat-x;
+    background-size: 20px 40px;
+  }
+
+  hr.style-sawteeth::after {
+    content: "";
+    display: block;
+    height: 30px;
+    top: -2px;
+    background:
+      linear-gradient(-135deg, var(--bg-color) 20px, rgba(0, 0, 0, 0) 0) 0 5px,
+      linear-gradient(135deg, var(--bg-color) 20px, rgba(0, 0, 0, 0) 0) 0 5px;
+    background-color: rgba(0, 0, 0, 0);
+    background-position: center bottom;
+    background-repeat: repeat-x;
+    background-size: 20px 40px;
+    position: relative;
+  }
+
+  hr.style-dotted {
+    border: none;
+    background-image: linear-gradient(
+      to right,
+      var(--subtext-color) 10%,
+      10%,
+      transparent 90%,
+      90%,
+      var(--subtext-color)
+    );
+    background-position: center top;
+    background-repeat: repeat-x;
+    background-size: 15px 2px;
+    height: 2px;
+  }
+
+  hr.style-dashed {
+    border: none;
+    background-image: linear-gradient(
+      to right,
+      var(--subtext-color) 25%,
+      25%,
+      transparent 75%,
+      75%,
+      var(--subtext-color)
+    );
+    background-position: center top;
+    background-repeat: repeat-x;
+    background-size: 30px 2px;
+    height: 2px;
+  }
+
+  @media print {
+    hr {
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      border-top-width: 1px;
+    }
+
+    hr.style-dashed {
+      background-size: 15px 1px;
+    }
+
+    hr.style-dotted {
+      background-size: 6px 1px;
+    }
+
+    hr.style-sawteeth {
+      background:
+        linear-gradient(-135deg, var(--subtext-color) 10px, rgba(0, 0, 0, 0) 0)
+          0 2px,
+        linear-gradient(135deg, var(--subtext-color) 10px, var(--bg-color) 0) 0
+          2px;
+      background-size: 10px 20px;
+
+      &::after {
+        background:
+          linear-gradient(-135deg, var(--bg-color) 10px, rgba(0, 0, 0, 0) 0) 0
+            2px,
+          linear-gradient(135deg, var(--bg-color) 10px, rgba(0, 0, 0, 0) 0) 0
+            2px;
+        background-size: 10px 20px;
+        height: 32px;
+        top: -1.4px;
+      }
+    }
+  }
+
+  /************** new file ***************/
+
+  .new-file {
+    border: none;
+    background-image: linear-gradient(
+      to right,
+      var(--subtext-color) 10%,
+      10%,
+      transparent 90%,
+      90%,
+      var(--subtext-color)
+    );
+    background-position: center top;
+    background-repeat: repeat-x;
+    background-size: 15px 2px;
+    height: 2px;
+    position: relative;
+    overflow: visible;
+
+    &:has(+ .new-file-btn-container) {
+      margin-bottom: 0;
+    }
+  }
+
+  .new-file::after {
+    content: "NEW FILE";
+    font-family: "Inter Variable", sans-serif;
+    font-size: 0.8rem;
+    margin: 0 0.5rem;
+    display: block;
+    color: var(--subtext-color);
+    text-align: center;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    translate: -50% -50%;
+    background: var(--bg-color);
+  }
+
+  .new-file-btn-container {
+    display: flex;
+    justify-content: flex-end;
+
+    & .preview-button {
+      translate: 0 calc(-50% - 1px);
+      background-color: var(--bg-color);
+
+      &:hover {
+        background-color: var(--subtext-color);
+      }
+    }
+  }
+
+  /*************** Lists ***************/
+  ul > li {
+    list-style-type: "▷  ";
+  }
+
+  ul > li > ul > li {
+    list-style-type: "★  ";
+  }
+
+  ul > li > ul > li > ul > li {
+    list-style-type: "−  ";
+  }
+
+  ul > li::marker {
+    font-size: 0.8em;
+  }
+
+  @media print {
+    ul > li::marker {
+      font-size: 0.5rem;
+    }
+  }
+
+  ul > li,
+  ol > li {
+    margin-left: 2rem;
+    margin-top: 1rem;
+  }
+
+  @media screen and (max-width: 1000px) {
+    ul > li,
+    ol > li {
+      margin-left: 1.5rem;
+      margin-top: 1rem;
+    }
+  }
+
+  @media screen and (max-width: 700px) {
+    ul > li,
+    ol > li {
+      margin-left: 1rem;
+      margin-top: 1rem;
+    }
+  }
+
+  /* Compact lists */
+  @counter-style compact-roman {
+    system: additive;
+    additive-symbols:
+      "m" 1000,
+      "cm" 900,
+      "d" 500,
+      "cd" 400,
+      "c" 100,
+      "xc" 90,
+      "l" 50,
+      "xl" 40,
+      "x" 10,
+      "ix" 9,
+      "v" 5,
+      "iv" 4,
+      "i" 1;
+    suffix: ") ";
+    prefix: "(";
+  }
+
+  .list-compact {
+    display: flex;
+    gap: 0.2em max(10vw, 2em);
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.8em;
+
+    & li::marker {
+      color: var(--subtext-color);
+    }
+  }
+
+  ol.list-compact {
+    list-style-type: compact-roman;
+  }
+
+  p:has(+ .list-compact) {
+    margin-bottom: 0;
+  }
+
+  ul.list-plus p {
+    margin: 0.5rem;
+    line-height: 150%;
+  }
+
+  ul.list-plus li {
+    margin-top: 0;
+  }
+
+  /*************** Maths ***************/
+
+  .katex {
+    font-size: 1em !important;
+    print-color-adjust: exact;
+  }
+
+  .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  /*************** Environments ***************/
+
+  .off-program {
+    color: var(--red-color);
+    print-color-adjust: exact;
+  }
+  .dimmed {
+    color: var(--subtext-color);
+  }
+
+  .environment {
+    margin: 1rem 0;
+    position: relative;
+    break-inside: auto;
+  }
+
+  .environment::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+
+  .environment > *:not(.environment-title):first-of-type {
+    margin-top: 0;
+  }
+
+  .environment > *:last-child {
+    margin-bottom: 0;
+  }
+
+  .environment-theorem,
+  .environment-proposition,
+  .environment-notation,
+  .environment-corollary,
+  .environment-lemma,
+  .environment-property,
+  .environment-definition,
+  .environment-definition-proposition,
+  .environment-method,
+  .environment-proof,
+  .environment-example {
+    border: 2px solid var(--subtext-color);
+    padding: 1.5rem;
+  }
+
+  @media print {
+    .environment-theorem,
+    .environment-proposition,
+    .environment-notation,
+    .environment-corollary,
+    .environment-lemma,
+    .environment-property,
+    .environment-definition,
+    .environment-definition-proposition,
+    .environment-method,
+    .environment-proof,
+    .environment-example {
+      padding: 0.5rem;
+    }
+  }
+
+  .environment-theorem,
+  .environment-proposition {
+    border-style: double;
+    border-width: 5px;
+  }
+
+  .environment-definition,
+  .environment-definition-proposition {
+    border-style: dashed;
+  }
+
+  .environment-notation,
+  .environment-method {
+    border-style: dotted;
+  }
+
+  .environment-example {
+    border-style: none none none solid;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-right: 0;
+  }
+
+  .environment-proof {
+    border-style: none none none dotted;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-right: 0;
+  }
+
+  .environment-callout {
+    background-color: var(--bg-greyed);
+    padding: 1rem;
+    border-radius: 0.3rem;
+
+    & > .environment-title {
+      font-weight: bold;
+    }
+  }
+
+  /***** Environment title */
+
+  /* Compact environments */
+  .environment-proof > .environment-title,
+  .environment-remark > .environment-title,
+  .environment-example > .environment-title,
+  .environment-exercise > .environment-title,
+  .environment-recall > .environment-title {
+    font-style: italic;
+    font-weight: bold;
+    color: var(--subtext-color);
+    display: inline-block;
+    &::before {
+      content: "(";
+    }
+    &::after {
+      content: ")";
+    }
+
+    @media screen and (max-width: 1800px) {
+      &.environment-title {
+        margin-left: 1ex;
+      }
+    }
+  }
+
+  /* Important environments */
+  .environment-theorem > .environment-title,
+  .environment-proposition > .environment-title,
+  .environment-corollary > .environment-title,
+  .environment-lemma > .environment-title,
+  .environment-property > .environment-title,
+  .environment-definition > .environment-title,
+  .environment-definition-proposition > .environment-title,
+  .environment-notation > .environment-title,
+  .environment-method > .environment-title {
+    font-size: 0.9rem;
+    position: absolute;
+    left: 1rem;
+    top: -1px;
+    translate: 0 -50%;
+    padding: 0 0.5rem;
+    font-family: "Inter Variable";
+    color: var(--subtext-color);
+    background-color: var(--bg-color);
+  }
+
+  @media print {
+    .environment-theorem > .environment-title,
+    .environment-corollary > .environment-title,
+    .environment-lemma > .environment-title,
+    .environment-property > .environment-title,
+    .environment-definition > .environment-title,
+    .environment-definition-proposition > .environment-title {
+      font-size: 0.7rem;
+    }
+  }
+
+  .environment-theorem > .environment-title {
+    top: -2.5px;
+  }
+
+  /* Environment margin tag */
+
+  .environment-proof::before,
+  .environment-remark::before,
+  .environment-example::before,
+  .environment-recall::before,
+  .environment-exercise::before {
+    font-size: 20px;
+    font-family: "Inter Variable";
+    font-weight: bold;
+    color: var(--subtext-color);
+    /* Align vertically with the first line of text */
+    line-height: 200%;
+
+    @media print {
+      font-size: 100%;
+    }
+  }
+
+  .environment-proof::before {
+    content: "PREUVE";
+  }
+
+  .environment-remark::before {
+    content: "REMARQUE";
+  }
+
+  .environment-example::before {
+    content: "EXEMPLE";
+  }
+
+  body {
+    counter-reset: exercise-counter;
+  }
+
+  .environment-exercise {
+    counter-increment: exercise-counter;
+  }
+
+  .environment-exercise::before {
+    content: "EXO " counter(exercise-counter);
+  }
+
+  .environment-recall::before {
+    content: "RAPPEL";
+  }
+
+  @media screen and (min-width: 1800px) {
+    :not(.environment *) > .environment-proof::before,
+    :not(.environment *) > .environment-remark::before,
+    :not(.environment *) > .environment-example::before,
+    :not(.environment *) > .environment-recall::before,
+    :not(.environment *) > .environment-exercise::before {
+      position: absolute;
+      left: -5%;
+      transform: translateX(-100%);
+      top: 0;
+    }
+  }
+
+  .environment-remark {
+    --line-color: var(--subtext-color);
+    padding-left: 1.5rem;
+    position: relative;
+    background:
+      linear-gradient(-45deg, var(--line-color) 7.07px, rgba(0, 0, 0, 0) 0) 0
+        5px,
+      linear-gradient(225deg, var(--line-color) 7.07px, var(--bg-color) 0) 0 5px;
+    background-color: rgba(0, 0, 0, 0);
+    background-position: top left;
+    background-repeat: repeat-y;
+    background-size: 10px 10px;
+  }
+
+  .environment-remark::after {
+    content: "";
+    display: block;
+    height: 100%;
+    width: 10px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background:
+      linear-gradient(-45deg, var(--bg-color) 7.07px, rgba(0, 0, 0, 0) 0) 0 5px,
+      linear-gradient(225deg, var(--bg-color) 7.07px, rgba(0, 0, 0, 0) 0) 0 5px;
+
+    background-position: top left 2px;
+    background-repeat: repeat-y;
+    background-size: 10px 10px;
+  }
+
+  @media print {
+    .environment-remark {
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      --line-color: var(--text-color);
+    }
+  }
+
+  .environment-exercise,
+  .environment-recall {
+    --line-color: var(--subtext-color);
+    padding-left: 1.5rem;
+    position: relative;
+
+    --size: 4px;
+    --b: 2px;
+    --m: 0.65;
+    --p: calc(var(--m) * var(--size));
+    --R: calc(var(--size) * sqrt(var(--m) * var(--m) + 1) + var(--b) / 2);
+
+    --_g:
+      #0000 calc(99% - var(--b)), var(--line-color) calc(101% - var(--b)) 99%,
+      #0000 101%;
+
+    --mask:
+      radial-gradient(var(--R) at calc(100% + var(--p)) 50%, var(--_g))
+        calc(-1 * var(--size) + var(--p)) calc(50% - 2 * var(--size)) /
+        calc(var(--size) + var(--b)) calc(4 * var(--size)) repeat-y,
+      radial-gradient(var(--R) at calc(-1 * var(--p)) 50%, var(--_g))
+        calc(2 * var(--b)) 50% / calc(var(--size) + var(--b))
+        calc(4 * var(--size)) repeat-y;
+    background: var(--mask);
+  }
+
+  @media print {
+    .environment-exercise,
+    .environment-recall {
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      --line-color: var(--text-color);
+    }
+  }
+
+  /*************** Fold ***************/
+  details[open]::details-content {
+    padding: 1rem;
+  }
+
+  summary {
+    font-weight: bold;
+    cursor: pointer;
+    font-family: "Computer Modern Sans";
+  }
+
+  /*************** Sidenotes ***************/
+  .sidenote {
+    font-size: 80%;
+    position: relative;
+  }
+
+  /* Wide viewport */
+  @media (min-width: 1800px) {
+    .sidenote {
+      float: right;
+      clear: right;
+      text-align: left;
+
+      width: 14vw;
+      margin-right: -14vw;
+      top: -0.5rem;
+      padding-left: 1vw;
+      margin-top: 1rem;
+    }
+  }
+
+  /* Narrow viewport */
+  @media (max-width: 1800px) {
+    .sidenote {
+      float: left;
+      text-align: left;
+
+      width: 100%;
+      margin: 1rem 0;
+      padding-left: 15%;
+    }
+  }
+
+  /* Sidenote counter */
+  body {
+    counter-reset: sidenote-counter;
+  }
+
+  .sidenote-number {
+    counter-increment: sidenote-counter;
+  }
+
+  /* Counter before the sidenote in the margin. */
+  .sidenote::before {
+    content: counter(sidenote-counter) ". ";
+    position: relative;
+    vertical-align: baseline;
+    font-size: 0.9em;
+    font-weight: bold;
+  }
+
+  /* Counter in the main body. */
+  .sidenote-number::after {
+    content: counter(sidenote-counter);
+    vertical-align: super;
+    font-size: 0.7em;
+    font-weight: bold;
+    margin-left: 0.1rem;
+  }
+
+  @media (min-width: 1800px) {
+    /* Highlight the sidenote when mouse hovers on the sidenote number in body. */
+    .sidenote-number:hover .sidenote {
+      background-color: var(--code-bg-color);
+      color: var(--text-color);
+      border-left: 3px solid var(--accent-color);
+      padding-left: calc(1vw - 3px);
+    }
+
+    .sidenote-number:hover {
+      color: var(--accent-color);
+    }
+  }
+
+  /* Prevent collapsed sidenotes from hiding content blocks */
+  .environment,
+  details,
+  .blockquote,
+  hr,
+  .katex-display {
+    clear: left;
+  }
+
+  /*************** Table **************/
+  table {
+    border-collapse: collapse;
+  }
+
+  th {
+    background: var(--bg-greyed);
+  }
+
+  td,
+  th {
+    border: 1px solid var(--subtext-color);
+    padding: 0.3em 0.8em;
+  }
+
+  /*************** Figure **************/
+  body {
+    counter-reset: figure-counter;
+  }
+
+  figure {
+    counter-increment: figure-counter;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    font-size: smaller;
+    font-style: italic;
+  }
+
+  figure:not(.float-left):not(.float-right) {
+    width: 100%;
+  }
+
+  figure * {
+    text-align: center !important;
+  }
+
+  @media screen and (min-width: 700px) {
+    figure.float-left {
+      float: left;
+      margin-right: 0.5rem;
+    }
+
+    figure.float-right {
+      float: right;
+      margin-left: 0.5rem;
+    }
+  }
+
+  figure figcaption::before {
+    content: "Fig " counter(figure-counter) ". ";
+    font-weight: bold;
+    font-family: "Computer Modern Sans";
+    font-variant: small-caps;
+    font-style: initial;
+  }
+
+  figure img {
+    max-width: 80%;
+  }
+
+  /* Math rendering */
+  figure svg {
+    text-align: left !important;
+    line-height: initial;
+    filter: invert();
+
+    @media print {
+      filter: none;
+    }
+  }
+
+  svg * {
+    text-align: left !important;
+  }
+
+  svg .katex {
+    color: black !important;
+  }
+}

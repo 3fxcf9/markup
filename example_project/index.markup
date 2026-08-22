@@ -1,96 +1,81 @@
-title Project name
-date 2026
-
 common/header.lib.markup
+
+parser copy_font_directory
+	build_html
+		lua
+		fs_copy('common/static/fonts', 'common/static')
+		return ''
+
+copy_font_directory
+
+css
+	.header {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		margin-bottom: 3rem;
+	}
+
+	.subject-grid {
+		display: grid;
+		gap: 1em;
+		grid-template-columns: repeat(auto-fit, minmax(15em, 1fr));
+		grid-auto-flow: row;
+	}
+
+	@media screen and (max-width: 700px) {
+		.subject-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.subject {
+		text-decoration: none;
+		color: inherit;
+		border: 1px solid var(--subtext-color);
+	}
+
+	.cover {
+		height: 5em;
+		background-size: cover;
+		background-position: center;
+		opacity: 0.7;
+		transition: opacity 0.1s ease;
+	}
+
+	.title:hover .cover {
+		opacity: 1;
+	}
+
+	.content {
+		padding: 1em;
+	}
+
+	.subject-title {
+		font-weight: bold;
+		font-size: 1.1em;
+	}
+
+	.subject-subtitle {
+		font-style: italic;
+	}
+
+
+div header
+	title Project name
+	date 2026-2027
+	print_date
 
 parser subject
 	build_html
-		<a href="$arg">
-			<div class="subject">
-				<span class="subject-title">$external_metadata[$arg/index][title]</span>
-				<span class="subject-teacher">$external_metadata[$arg/index][teacher]</span>
+		<a class="subject" href="$arg">
+			<div class="cover" style="background-color: #aaaaff22"></div>
+			<div class="content">
+				<div class="subject-title">$external_metadata[$arg/index][title]</div>
+				<div class="subject-teacher">$external_metadata[$arg/index][teacher]</div>
 			</div>
 		</a>
 	list_wrap <div class="subject-grid">$elements</div>
 
-css
-	.subject-grid {
-		display: flex;
-		gap: 2rem;
-		& a {text-decoration: none;}
-	}
-	.subject {
-		color: black;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-		border: 1px solid;
-		border-radius: .5rem;
-		padding: .5rem;
-		margin-bottom: 1rem;
-	}
-	.subject-title {
-		font-weight: bold;
-	}
-	.subject-teacher {
-		font-style: italic;
-	}
-
-div classname
-	this is content
-
-
 subject math
 subject physics
-
-parser uuu
-	build_html called
-parser test
-	build_html
-		lua
-		return parse_markup("parser aaa\n\tbuild_html it works\naaa\nuuu")
-
-test
-
-
-parser exo
-	extends db
-
-exo
-	date 12/01/2026
-	text
-		markup here
-			bold here
-	difficulty 4
-
-exo
-	date 13/01/2026
-	text
-		other exercise
-	difficulty 3
-
-parser display_exo
-	build_html
-		<div class="exercise">
-			<span class="date">$sub[date].content</span>
-			<span class="difficulty">Difficulty: $sub[difficulty].arg</span>
-			<span class="date">$sub[text].content</span>
-		</div>
-
-
-// parser display_db
-	build_html
-		lua
-		for _, p in ipairs(metadata[this.atoms[2]]) do
-			if p.name == "left" then
-				attr = ' class="float-left"'
-				break
-			elseif p.name == "right" then
-				attr = ' class="float-right"'
-				break
-			end
-		end
-
-
-display_db exo display_exo
-

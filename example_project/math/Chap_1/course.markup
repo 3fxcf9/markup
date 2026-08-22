@@ -3,6 +3,8 @@
 title Chapter 1
 date 12/01/2026
 
+## First section
+
 This is a paragraph with *bold*^fn1, _italic_, ++underlined++, ==highlighted==, and ~~strikethrough~~ text. It also includes maths: $\sqrt 2$ and `a code, correctly handling *markup* of _all_ ++sorts++`.
 
 Here a course, with bold text, italic text and a link.
@@ -23,12 +25,16 @@ thm First *theorem*^thm
 		- a level 2 list
 	- back to level 1
 
+## Second section
+
 fig Figure title
 	right
 	id fig_id
 	html
 		<div style="width:100px; height:100px; background: gray;"></div>
 	// ./figures/file.svg -- soon !
+
+### A subsection
 
 An idea for the future^fn1:
 

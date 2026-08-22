@@ -23,6 +23,9 @@ let rec try_parsers (parsers : parser_def list) (line : string) =
 let rec collect_indented_lines (lines : string list) (level : int) :
     string list * string list =
   match lines with
+  | "" :: rest ->
+      let indented_lines, rest' = collect_indented_lines rest level in
+      ("\n" :: indented_lines, rest')
   | line :: rest when indent_level line >= level ->
       let unindented_line = String.sub line 1 (String.length line - 1) in
       let indented_lines, rest' = collect_indented_lines rest level in

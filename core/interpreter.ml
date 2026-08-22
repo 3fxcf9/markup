@@ -348,6 +348,9 @@ and evaluate_particles (reg : registry) (parent_html : string)
     if p.parser.head then (
       reg.head := !(reg.head) ^ output;
       ("", evaluated_particle))
+    else if p.parser.end_of_body then (
+      reg.end_of_body := !(reg.end_of_body) ^ output;
+      ("", evaluated_particle))
     else (output, evaluated_particle)
   in
   let html, evaluated_particles =

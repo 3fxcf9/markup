@@ -1,0 +1,71 @@
+@counter-style custom-roman {
+  system: additive;
+  additive-symbols:
+    "M" 1000,
+    "CM" 900,
+    "D" 500,
+    "CD" 400,
+    "C" 100,
+    "XC" 90,
+    "L" 50,
+    "XL" 40,
+    "X" 10,
+    "IX" 9,
+    "V" 5,
+    "IV" 4,
+    "I" 1;
+  suffix: " – ";
+  /* Adds the dash and a space after the numeral */
+}
+
+@counter-style custom-alpha {
+  system: alphabetic;
+  symbols: A B C D E F G H I J K L M N O P Q R S T U V W X Y Z;
+  suffix: " – ";
+}
+
+.toc {
+  /* list-style-type: custom-roman; */
+  list-style-type: upper-roman;
+  font-family: Inter, sans-serif;
+  font-size: 0.8rem;
+}
+
+.toc > li {
+  margin-bottom: 0.5rem;
+}
+
+.toc > li > ol {
+  /* list-style-type: custom-alpha; */
+  list-style: upper-alpha;
+}
+
+.toc li {
+  margin-left: 1rem;
+  margin-top: 0.1rem;
+
+  &::marker {
+    color: var(--subtext-color);
+  }
+}
+
+.toc a {
+  color: inherit;
+  text-decoration: none;
+
+  &.active {
+    font-weight: bold;
+  }
+}
+
+@media screen and (max-width: 1000px) {
+  .toc a {
+    margin: 0;
+    padding: 1rem;
+    display: inline-block;
+
+    &.active {
+      text-decoration: underline;
+    }
+  }
+}

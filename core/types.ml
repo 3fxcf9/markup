@@ -1,4 +1,5 @@
 let ( let* ) o f = match o with None -> None | Some x -> f x
+let ( >> ) f g x = g (f x)
 
 (* ---------- PARSER ---------- *)
 type parser_value = ReplaceString of string | LuaFunction of string
@@ -10,6 +11,7 @@ type parser_def = {
       (* None or the text to replace in the parent node *)
   raw : bool;
   head : bool;
+  end_of_body : bool;
   metadata : parser_value option;
   arg_as_content : bool;
   list_wrap : string option;
@@ -27,6 +29,7 @@ let fallback_parser =
     build_html = Some (ReplaceString "<p>$arg</p>");
     markup = None;
     head = false;
+    end_of_body = false;
     raw = false;
     metadata = None;
     arg_as_content = false;
@@ -43,6 +46,7 @@ let raw_parser =
     build_html = Some (ReplaceString "$content");
     markup = None;
     head = false;
+    end_of_body = false;
     raw = false;
     metadata = None;
     (* does not matter here *)
@@ -58,6 +62,7 @@ let markup_file_include_parser =
     build_html = Some (ReplaceString "$content");
     markup = None;
     head = false;
+    end_of_body = false;
     raw = false;
     metadata = None;
     arg_as_content = false;
@@ -96,6 +101,7 @@ let parser_debug_parser =
            ));
     markup = None;
     head = false;
+    end_of_body = false;
     raw = false;
     metadata = None;
     arg_as_content = false;
@@ -149,6 +155,7 @@ let pp_parser_def ?(indent = 0) p =
 %s  aftertext = %s;
 %s  raw = %b;
 %s  head = %b;
+%s  end_of_body = %b;
 %s  arg_as_content = %b;
 %s  list_wrap = %s;
 %s  build_html = %s;
@@ -161,6 +168,7 @@ let pp_parser_def ?(indent = 0) p =
     i (pp_option (pp_aftertext pp_parser_value) p.aftertext)
     i p.raw
     i p.head
+    i p.end_of_body
     i p.arg_as_content
     i (pp_option pp_string p.list_wrap)
     i (pp_option pp_parser_value p.build_html)
@@ -243,10 +251,12 @@ type registry = {
   mutable debug : bool ref;
   mutable parsers : parser_def list ref;
   mutable head : string ref;
+  mutable end_of_body : string ref;
   mutable metadata : (string * string) list ref;
   external_metadata : (string * (string * string) list) list;
   mutable relative_path : string ref;
   mutable filename : string ref;
   file_reader : string -> string option;
   file_writer : string -> string -> (unit, string) result;
+  fs_copy : string -> string -> (unit, string) result;
 }

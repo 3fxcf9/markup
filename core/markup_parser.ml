@@ -86,6 +86,11 @@ let parse_parser_definition ~(parsers : parser_def list) (lines : string list) :
             | Some "true" -> true
             | _ -> false
           in
+          let end_of_body =
+            match List.assoc_opt "end_of_body" fields with
+            | Some "true" -> true
+            | _ -> false
+          in
           let raw =
             match List.assoc_opt "raw" fields with
             | Some "true" -> true
@@ -112,6 +117,7 @@ let parse_parser_definition ~(parsers : parser_def list) (lines : string list) :
                   build_html;
                   markup;
                   head;
+                  end_of_body;
                   raw;
                   metadata;
                   arg_as_content;
@@ -128,6 +134,7 @@ let parse_parser_definition ~(parsers : parser_def list) (lines : string list) :
                   build_html = build_html ||* p.build_html;
                   markup = markup ||* p.markup;
                   head = head || p.head;
+                  end_of_body = end_of_body || p.end_of_body;
                   raw = raw || p.raw;
                   metadata = metadata ||* p.metadata;
                   arg_as_content = arg_as_content || p.arg_as_content;

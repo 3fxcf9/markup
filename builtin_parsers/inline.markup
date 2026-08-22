@@ -50,10 +50,10 @@ parser footnotes
 			end
 		end
 		if i > 0 then
-			return string.format('<a id="note-ref-%d" href="#note-%d"><sup>[%d]</sup></a>', i, i, i)
+			return string.format('<a class="footnote-ref" id="note-ref-%d" href="#note-%d"><sup>[%d]</sup></a>', i, i, i)
 		else
 			local i = #metadata["footnotes"]
-			return string.format('<a id="note-ref-%d" href="#note-%d"><sup>[%d]</sup></a>', i, i, i)
+			return string.format('<a class="footnote-ref" id="note-ref-%d" href="#note-%d"><sup>[%d]</sup></a>', i, i, i)
 		end
 	metadata
 		lua
@@ -84,7 +84,7 @@ parser footnote_text
 		if i > 0 then
 			local label = ((find_subparticle("label") or {}).atoms or {})[2]
 			local js = label ~= nil and string.format('<script>document.querySelectorAll("#note-ref-%d > sup").forEach(e => e.innerText = "%s")</script>', i, label) or ""
-			return string.format('%s<p id="note-%d"><a href="#note-ref-%d">%s</a> %s</p>', js, i, i, label ~= nil and label or '['..i..']', this.arg)
+			return string.format('%s<p class="footnote-text" id="note-%d"><a href="#note-ref-%d">%s</a> %s</p>', js, i, i, label ~= nil and label or '['..i..']', this.arg)
 		else
 			return "Invalid"
 		end

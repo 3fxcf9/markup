@@ -9,6 +9,11 @@ parser html
 	raw
 	build_html $content
 
+parser html_end
+	raw
+	end_of_body
+	build_html $content
+
 parser head
 	raw
 	head
@@ -19,10 +24,34 @@ parser css
 	head
 	build_html <style>$content</style>
 
+parser css_file
+	head
+	build_html lua return '<style>' .. read_file(this.arg) .. '</style>'
+
+parser css_file_link
+	head
+	build_html
+		lua
+		local dirname = this.arg:match("(.*/)")
+		fs_copy(this.arg, dirname)
+		return string.format('<link rel="stylesheet" href="/%s"/>', this.arg)
+
 parser js
 	raw
-	head
+	end_of_body
 	build_html <script>$content</script>
+
+parser js_file
+	end_of_body
+	build_html lua return '<script>' .. read_file(this.arg) .. '</script>'
+
+parser js_file_src
+	end_of_body
+	build_html
+		lua
+		local dirname = this.arg:match("(.*/)")
+		fs_copy(this.arg, dirname)
+		return string.format('<script src="/%s"></script>', this.arg)
 
 parser div
 	build_html
@@ -56,7 +85,64 @@ parser headings
 	build_html
 		lua
 		local level = string.len(this.matched_groups[2])
-		return string.format("<h%d>%s</h%d>", level, this.arg, level)
+		local id = (find_subparticle("id") or {}).arg or hash(this.arg)
+		return string.format('<h%d id="%s">%s</h%d>', level, id, this.arg, level)
+	metadata
+		lua
+		local level = string.len(this.matched_groups[2])
+		local id = (find_subparticle("id") or {}).arg or hash(this.arg)
+		return string.format('%d;%s;%s', level, id, this.arg)
+
+parser table_of_contents
+	build_html
+		lua
+			function generate_toc(headings)
+				local root = { level = 0, children = {} }
+				local stack = { root }
+
+				for _, line in ipairs(headings) do
+					local level, id, text = line:match("^(%d+);([^;]*);(.*)$")
+					level = tonumber(level)
+
+					if level then
+						while #stack > 1 and stack[#stack].level >= level do
+							table.remove(stack)
+						end
+
+						local node = {
+							level = level,
+							id = id,
+							text = text,
+							children = {}
+						}
+
+						table.insert(stack[#stack].children, node)
+						table.insert(stack, node)
+					end
+				end
+
+				local function render(nodes, root)
+					local out = { root and '<ol class="toc">' or '<ol>' }
+
+					for _, node in ipairs(nodes) do
+						table.insert(out, '<li><a href="#' .. node.id .. '">' .. node.text .. '</a>')
+
+						if #node.children > 0 then
+								table.insert(out, render(node.children))
+						end
+
+						table.insert(out, '</li>')
+					end
+
+					table.insert(out, '</ol>')
+					return table.concat(out)
+				end
+
+				return render(root.children, true)
+			end
+
+			local path = relative_path .. '/' .. filename
+			return generate_toc(external_metadata[path].headings or {})
 
 ## Blocs
 parser hrule
