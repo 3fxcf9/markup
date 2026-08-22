@@ -3,14 +3,16 @@
 title Chapter 1
 date 12/01/2026
 
-This is a paragraph with *bold*, _italic_, ++underlined++, ==highlighted==, and ~~strikethrough~~ text. It also includes maths: $\sqrt 2$ and `a code, correctly handling *markup* of _all_ ++sorts++`.
+This is a paragraph with *bold*^fn1, _italic_, ++underlined++, ==highlighted==, and ~~strikethrough~~ text. It also includes maths: $\sqrt 2$ and `a code, correctly handling *markup* of _all_ ++sorts++`.
 
 Here a course, with bold text, italic text and a link.
 	bold bold text
 	italic italic
 	https://wikipedia.org a link
 
-thm First theorem
+thm First *theorem*^thm
+	// inline bold on a non-paragraph node
+	inline_markup
 	id ref_thm_1
 	Some text
 	- a list
@@ -28,7 +30,7 @@ fig Figure title
 		<div style="width:100px; height:100px; background: gray;"></div>
 	// ./figures/file.svg -- soon !
 
-An idea for the future:
+An idea for the future^fn1:
 
 code markup
 	annotate presentation.pdf
@@ -37,3 +39,10 @@ code markup
 		5. Interesting ! To remember.
 		8. See [ref_thm_1] and this figure
 			link fig_id this figure
+
+html
+	<div style="height: 100vh"></div>
+
+^fn1 test label
+	label +
+^thm The footnote syntax is also enabled !

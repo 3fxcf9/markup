@@ -5,19 +5,13 @@
 
 ### Parser syntax
 
+- ALLOW EMPTY LINES IN MULTILINE FIELDS
 - references
 - `ctx` lua table
   - important ?
 - allow empty value
 
 ### Parser ideas
-
-- ```
-  - support for footnotes^foot
-
-  ^foot Caption here.
-    label +
-  ```
 
 ### Documentation
 

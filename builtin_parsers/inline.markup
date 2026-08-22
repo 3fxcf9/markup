@@ -30,6 +30,65 @@ parser inline_code
 	aftertext pattern `\([^`]*\)`
 	build_html lua return string.format('<code>%s</code>', escape(aftertext_matched_groups[2]))
 
+## Footnotes
+
+code
+	some text here^foot
+	^foot Caption here.
+		// label +
+
+parser footnotes
+	cue inline_footnotes
+	aftertext pattern \^\([1-9A-Za-z_-]+\)
+	build_html
+		lua
+		local i = 0
+		for j, v in ipairs(metadata["footnotes"] or {}) do
+			if v == aftertext_matched_groups[2] then
+				i=j
+				break
+			end
+		end
+		if i > 0 then
+			return string.format('<a id="note-ref-%d" href="#note-%d"><sup>[%d]</sup></a>', i, i, i)
+		else
+			local i = #metadata["footnotes"]
+			return string.format('<a id="note-ref-%d" href="#note-%d"><sup>[%d]</sup></a>', i, i, i)
+		end
+	metadata
+		lua
+		local i = 0
+		for j, v in ipairs(metadata["footnotes"] or {}) do
+			if v == aftertext_matched_groups[2] then
+				i=j
+				break
+			end
+		end
+		if i == 0 then
+			return aftertext_matched_groups[2]
+		else return "" end
+
+parser label
+
+parser footnote_text
+	pattern \^\([1-9A-Za-z_-]+\)
+	build_html
+		lua
+		local i = 0
+		for j, v in ipairs(metadata["footnotes"] or {}) do
+			if v == this.matched_groups[2] then
+				i=j
+				break
+			end
+		end
+		if i > 0 then
+			local label = ((find_subparticle("label") or {}).atoms or {})[2]
+			local js = label ~= nil and string.format('<script>document.querySelectorAll("#note-ref-%d > sup").forEach(e => e.innerText = "%s")</script>', i, label) or ""
+			return string.format('%s<p id="note-%d"><a href="#note-ref-%d">%s</a> %s</p>', js, i, i, label ~= nil and label or '['..i..']', this.arg)
+		else
+			return "Invalid"
+		end
+
 parser inline_markup
 	markup
 		inline_bold
@@ -37,6 +96,7 @@ parser inline_markup
 		inline_highlight
 		inline_underline
 		inline_strikethrough
+		inline_footnotes
 		// The two following parsers must be last
 		inline_math
 		inline_code

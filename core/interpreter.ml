@@ -218,13 +218,17 @@ let rec evaluate_parser_value
 and evaluate_wrap (wrap_replacestring : string) (html : string) =
   wrap_replacestring |> String.replace_all ~sub:"$elements" ~by:html
 
-and evaluate_metadata (reg : registry) (part : particle) ~(parent_html : string)
-    (pval_opt : parser_value option) : unit =
+and evaluate_metadata ?(aftertext_matched_groups : string list option = None)
+    ?(replaced_text : string option = None) (reg : registry) (part : particle)
+    ~(parent_html : string) (pval_opt : parser_value option) : unit =
   pval_opt
   |> Option.iter (fun pval ->
-      reg.metadata :=
-        (part.parser.name, evaluate_parser_value reg part ~parent_html pval)
-        :: !(reg.metadata))
+      let new_record =
+        evaluate_parser_value reg part ~parent_html pval
+          ~aftertext_matched_groups ~replaced_text
+      in
+      if new_record <> "" then
+        reg.metadata := (part.parser.name, new_record) :: !(reg.metadata))
 
 and evaluate_particles (reg : registry) (parent_html : string)
     (particles : particle list) : string * particle list =
@@ -259,7 +263,6 @@ and evaluate_particles (reg : registry) (parent_html : string)
             { aftertext = Some aft; build_html = Some build_html; metadata; _ };
           _;
         } as part -> (
-          evaluate_metadata reg part ~parent_html metadata;
           match aft with
           | `Pattern pattern -> begin
               (* Only replace if after an even number of backticks to skip code. Sadly hardcoded. *)
@@ -280,11 +283,17 @@ and evaluate_particles (reg : registry) (parent_html : string)
                     if even_backticks_and_dollars_before parent_html start then begin
                       let groups = Utils.all_matching_groups parent_html in
 
+                      evaluate_metadata reg part ~parent_html metadata
+                        ~aftertext_matched_groups:(Some groups)
+                        ~replaced_text:(Some (List.hd groups));
+
                       evaluate_parser_value reg part ~parent_html build_html
                         ~aftertext_matched_groups:(Some groups)
                         ~replaced_text:(Some (List.hd groups))
                     end
-                    else Str.matched_string parent_html)
+                    else (
+                      evaluate_metadata reg part ~parent_html metadata;
+                      Str.matched_string parent_html))
                   parent_html
               in
               (html, part)
