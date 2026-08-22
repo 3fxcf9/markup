@@ -4,6 +4,10 @@ open Types
 let rec parse_indented_string ?(first = true) (lines : string list) :
     string * string list =
   match (lines, first) with
+  | "" :: rest, _ | "\t\t" :: rest, _ ->
+      let content, lines_after = parse_indented_string rest ~first in
+      if content = "true" then (content, lines_after)
+      else ("\n" ^ content, lines_after)
   | line :: rest, _ when starts_with ~prefix:"\t\t" line ->
       let content, lines_after = parse_indented_string rest ~first:false in
       let unindented_line = sub line 2 (length line - 2) in

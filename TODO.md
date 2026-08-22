@@ -5,7 +5,6 @@
 
 ### Parser syntax
 
-- ALLOW EMPTY LINES IN MULTILINE FIELDS
 - references
 - `ctx` lua table
   - important ?
