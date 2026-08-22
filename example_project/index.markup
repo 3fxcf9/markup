@@ -43,7 +43,7 @@ css
 		transition: opacity 0.1s ease;
 	}
 
-	.title:hover .cover {
+	.subject:hover .cover {
 		opacity: 1;
 	}
 

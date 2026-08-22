@@ -1,5 +1,8 @@
 header.lib.markup
 
+css_file_link common/static/css/subject.css
+js_file_src common/static/js/subject_search.js
+
 parser teacher
 	metadata $arg
 
@@ -17,94 +20,3 @@ parser chapter
 			<input type="text" name="search_query" placeholder="Search…" autofocus>
 		</div>
 		<div class="chapter-list">$elements</div>
-
-js
-	const input = document.querySelector("input[name=search_query]");
-
-	const list_items = Array.from(document.querySelectorAll(".chapter")).map(
-		(item) => {
-			return {
-				title: item.querySelector(".chapter-title").innerText.toLowerCase(),
-				desc: item.dataset.description || "",
-				keywords: item.dataset.keywords || "",
-				elem: item,
-			};
-		},
-	);
-
-	function matches(item, query) {
-		return (
-			item.title.includes(query) ||
-			item.keywords.includes(query) ||
-			item.desc.includes(query)
-		);
-	}
-
-	input.addEventListener("input", () => {
-		let query = input.value.toLowerCase();
-
-		list_items.forEach((c) => c.elem.classList.remove("hidden"));
-		list_items
-			.filter((c) => !matches(c, query))
-			.forEach((c) => c.elem.classList.add("hidden"));
-	});
-
-css
-	.chapter-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5em;
-	}
-
-	.chapter {
-		text-decoration: none;
-		color: inherit;
-		display: block;
-		padding: 1em 2em;
-		border-radius: 0.5em;
-		position: relative;
-		display: flex;
-		justify-content: space-between;
-
-		&.hidden {
-			display: none;
-		}
-	}
-
-	.cover {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		border-radius: 0.5rem;
-		background-size: cover;
-		background-position: center;
-		opacity: 0.2;
-		transition: opacity 0.1s ease;
-	}
-
-	.chapter:hover,
-	.chapter:focus-visible {
-		outline: 1px dashed var(--subtext-color);
-	}
-
-	.chapter:hover .cover {
-		opacity: 0.5;
-	}
-
-	.chapter-date {
-		color: var(--subtext-color);
-	}
-
-	.search {
-		margin-bottom: 2rem;
-	}
-
-	input[name="search_query"] {
-		padding: 0.8rem 2rem;
-		border-radius: 0.5rem;
-		background-color: var(--input-background-color);
-		width: 100%;
-		color: var(--text-color);
-	}
