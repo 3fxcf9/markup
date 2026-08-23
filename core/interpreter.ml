@@ -281,6 +281,8 @@ and evaluate_particles (reg : registry) (parent_html : string)
                 evaluate_parser_value reg part ~parent_html build_html
                   ~replaced_text:(Some to_replace)
               in
+              evaluate_metadata reg part ~parent_html metadata
+                ~replaced_text:(Some to_replace);
               ( replace_first ~substring:to_replace ~new_text:replace_with
                   parent_html,
                 part )
