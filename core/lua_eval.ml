@@ -54,6 +54,66 @@ let hash ls =
 
 (* Custom functions end *)
 
+(** [ordered_records assoc key] is the list of values associated with [key] in
+    [assoc], in the order they were added. *)
+let ordered_records (assoc : (string * string) list) (key : string) :
+    string list =
+  assoc
+  |> List.filter_map (fun (k, v) -> if k = key then Some v else None)
+  |> List.rev
+
+let distinct_keys (assoc : (string * string) list) : string list =
+  List.fold_left
+    (fun acc (k, _) -> if List.mem k acc then acc else k :: acc)
+    [] assoc
+
+let push_string_array ls (values : string list) : unit =
+  Lua.newtable ls;
+  List.iteri
+    (fun i v ->
+      Lua.pushstring ls v;
+      Lua.rawseti ls (-2) (i + 1))
+    values
+
+(** [push_grouped_table ls assoc] pushes the association list [assoc] as a lua
+    table whose keys are [distinct_keys assoc] and their value
+    [ordered_records assoc key]. *)
+let push_grouped_table ls (assoc : (string * string) list) : unit =
+  Lua.newtable ls;
+  distinct_keys assoc
+  |> List.iter (fun key ->
+      push_string_array ls (ordered_records assoc key);
+      Lua.setfield ls (-2) key)
+
+(* Lazy tables *)
+let metadata_index reg ls =
+  let key = LuaL.checkstring ls 2 in
+  (match ordered_records !(reg.metadata) key with
+  | [] -> Lua.pushnil ls
+  | records -> push_string_array ls records);
+  (* only push the requested metadata *)
+  1
+
+let external_metadata_index reg ls =
+  let file = LuaL.checkstring ls 2 in
+  (* function(self, key) *)
+  (match List.assoc_opt file reg.external_metadata with
+  | None -> Lua.pushnil ls
+  | Some assoc -> push_grouped_table ls assoc);
+  (* push only the metadata of the requested file *)
+  1
+
+(** [set_lazy_global ls name index_fn] sets the global [name] to an empty table
+    whose reads are handled by [index_fn] via the [__index] metamethod (called
+    for a non-existend key). *)
+let set_lazy_global ls (name : string) (index_fn : Lua.state -> int) : unit =
+  Lua.newtable ls;
+  Lua.newtable ls;
+  Lua.pushocamlfunction ls index_fn;
+  Lua.setfield ls (-2) "__index";
+  ignore (Lua.setmetatable ls (-2));
+  Lua.setglobal ls name
+
 let lua_error_css =
   {|<style>
 .lua-error::before {
@@ -69,75 +129,76 @@ let lua_error_css =
 </style>|}
   |> String.replace_all ~sub:"\n" ~by:""
 
+(** [run_chunk ?nresults ls code] loads and executes the Lua code [code] with no
+    arguments, leaving [nresults] return values on the stack. *)
+let run_chunk ?(nresults = 0) ls code =
+  (match LuaL.loadstring ls code with
+  | Lua.LUA_OK -> ()
+  | _ -> failwith (getopt (Lua.tostring ls (-1))));
+  match Lua.pcall ls 0 nresults 0 with
+  | Lua.LUA_OK -> ()
+  | _ -> failwith (getopt (Lua.tostring ls (-1)))
+
+(** [get_state ?markup_parser reg] returns (and create if necessary) the Lua
+    state, with the standard library opened and custom functions registered. *)
+let get_state ?markup_parser (reg : registry) : Lua.state =
+  match reg.lua_state with
+  | Some ls -> ls
+  | None ->
+      let ls = LuaL.newstate () in
+      LuaL.openlibs ls;
+
+      Lua.pushocamlfunction ls (read_file_from_disk reg);
+      Lua.setglobal ls "read_file";
+      Lua.pushocamlfunction ls (write_file_to_disk reg);
+      Lua.setglobal ls "write_file";
+      Lua.pushocamlfunction ls (copy_file_or_folder reg);
+      Lua.setglobal ls "fs_copy";
+      Lua.pushocamlfunction ls html_escape_lua;
+      Lua.setglobal ls "escape";
+      Lua.pushocamlfunction ls hash;
+      Lua.setglobal ls "hash";
+      Option.iter
+        (fun f ->
+          Lua.pushocamlfunction ls f;
+          Lua.setglobal ls "parse_markup")
+        markup_parser;
+
+      (* [metadata] and [external_metadata] are exposed to Lua as read-only tables with an [__index] metamethod, so only the key the lua code reads are uilt. This avoid parsing it on every evaluation (huge optimization for large projects). *)
+      set_lazy_global ls "metadata" (metadata_index reg);
+      set_lazy_global ls "external_metadata" (external_metadata_index reg);
+
+      run_chunk ls
+        {|
+          find_subparticle = function (name)
+              for _, p in ipairs(this.subparticles) do
+                  if p.name == name then
+                      return p
+                  end
+              end
+              return nil
+          end
+        |};
+
+      reg.lua_state <- Some ls;
+      ls
+
 let eval_lua ?markup_parser (reg : registry) (lua_func : string)
     (globals : string) =
-  (* FIXME *)
-  let globals =
-    globals
-    ^ {|
-  find_subparticle = function (name)
-      for _, p in ipairs(this.subparticles) do
-          if p.name == name then
-              return p
-          end
-      end
-      return nil
-  end
-  |}
-  in
+  let ls = get_state ?markup_parser reg in
 
-  let ls = LuaL.newstate () in
-  LuaL.openlibs ls;
+  Fun.protect
+    ~finally:(fun () -> Lua.settop ls 0)
+    (fun () ->
+      try
+        run_chunk ls globals;
+        run_chunk ~nresults:1 ls lua_func;
 
-  (* custom functions *)
-  Lua.pushocamlfunction ls (read_file_from_disk reg);
-  Lua.setglobal ls "read_file";
-  Lua.pushocamlfunction ls (write_file_to_disk reg);
-  Lua.setglobal ls "write_file";
-  Lua.pushocamlfunction ls (copy_file_or_folder reg);
-  Lua.setglobal ls "fs_copy";
-  Lua.pushocamlfunction ls html_escape_lua;
-  Lua.setglobal ls "escape";
-  Lua.pushocamlfunction ls hash;
-  Lua.setglobal ls "hash";
-
-  let () =
-    match markup_parser with
-    | None -> ()
-    | Some f ->
-        Lua.pushocamlfunction ls f;
-        Lua.setglobal ls "parse_markup"
-  in
-
-  try
-    (* load globals *)
-    (match LuaL.loadstring ls globals with
-    | Lua.LUA_OK -> ()
-    | _ -> failwith (getopt (Lua.tostring ls (-1))));
-    (* 0 arguments, 0 expected returns *)
-    (match Lua.pcall ls 0 0 0 with
-    | Lua.LUA_OK -> ()
-    | _ -> failwith (getopt (Lua.tostring ls (-1))));
-
-    (* lua_func evaluation *)
-    (match LuaL.loadstring ls lua_func with
-    | Lua.LUA_OK -> ()
-    | _ -> failwith (getopt (Lua.tostring ls (-1))));
-    (match Lua.pcall ls 0 1 0 with
-    | Lua.LUA_OK -> ()
-    | _ -> failwith (getopt (Lua.tostring ls (-1))));
-
-    let result =
-      match Lua.tostring ls (-1) with
-      | Some s -> s
-      | None -> failwith "Expected a string return value"
-    in
-
-    Lua.pop ls 1;
-
-    result
-  with
-  | Failure err ->
-      Debug.log ~cat:Lua "ERROR: %s" err;
-      Printf.sprintf {|%s<div class="lua-error">%s</div>|} lua_error_css err
-  | _ -> "LUA_ERROR"
+        match Lua.tostring ls (-1) with
+        | Some s -> s
+        | None -> failwith "Expected a string return value"
+      with
+      | Failure err ->
+          Debug.log ~cat:Lua "ERROR: %s" err;
+          Printf.sprintf {|%s<div class="lua-error">%s</div>|} lua_error_css err
+      | _ -> "LUA_ERROR")

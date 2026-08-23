@@ -96,7 +96,7 @@ parser headings
 parser table_of_contents
 	build_html
 		lua
-			function generate_toc(headings)
+			local function generate_toc(headings)
 				local root = { level = 0, children = {} }
 				local stack = { root }
 

@@ -259,4 +259,5 @@ type registry = {
   file_reader : string -> string option;
   file_writer : string -> string -> (unit, string) result;
   fs_copy : string -> string -> (unit, string) result;
+  mutable lua_state : Lua_api.Lua.state option;
 }

@@ -51,7 +51,7 @@ parser flashcards
 			front = this.content
 			back = find_subparticle("flashcard_back").content
 		end
-		reversed = find_subparticle("flashcard_reversed_flag") ~= nil and ' reversed' or ''
+		local reversed = find_subparticle("flashcard_reversed_flag") ~= nil and ' reversed' or ''
 		return string.format('<div class="flashcard%s"><div class="flashcard-front">%s</div><div class="flashcard-back">%s</div></div>', reversed, front, back)
 	metadata
 		lua
@@ -76,7 +76,7 @@ parser flashcards
 			front = this.content
 			back = find_subparticle("flashcard_back").content
 		end
-		reversed = find_subparticle("flashcard_reversed_flag") ~= nil and 'true' or 'false'
+		local reversed = find_subparticle("flashcard_reversed_flag") ~= nil and 'true' or 'false'
 		return string.format('%s\t%s\t%s', front, back, reversed)
 
 parser flashcard_back

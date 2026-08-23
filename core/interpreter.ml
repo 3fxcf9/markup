@@ -151,35 +151,10 @@ let rec evaluate_parser_value
         |> String.concat "" |> Printf.sprintf {|"%s"|}
       in
 
-      let lua_of_assoc assoc =
-        let grouped =
-          List.fold_left
-            (fun acc (key, value) ->
-              let values =
-                match List.assoc_opt key acc with
-                | Some vs -> value :: vs
-                | None -> [ value ]
-              in
-              (key, values) :: List.remove_assoc key acc)
-            [] assoc
-        in
-        grouped
-        |> List.map (fun (key, values) ->
-            let value =
-              values |> List.map escape_lua_str |> String.concat ", "
-              |> Printf.sprintf "{%s}"
-            in
-            Printf.sprintf {|["%s"] = %s|} key value)
-        |> String.concat "," |> Printf.sprintf "{%s}"
-      in
-
-      let metadata = lua_of_assoc !(reg.metadata) in
-      let external_metadata =
-        reg.external_metadata
-        |> List.map (fun (file, meta) ->
-            Printf.sprintf {|["%s"] = %s|} file (lua_of_assoc meta))
-        |> String.concat "," |> Printf.sprintf "{%s}"
-      in
+      (* [metadata] and [external_metadata] are exposed to Lua as globals
+         set up once per document by [Lua_eval.get_state] (backed by an
+         [__index] getter reading straight from [reg]), so they don't need
+         to be serialized here on every call. *)
       let globals =
         Printf.sprintf
           {|
@@ -188,8 +163,6 @@ let rec evaluate_parser_value
             parent_html = %s
             replaced = %s
             aftertext_matched_groups = %s
-            metadata = %s
-            external_metadata = %s
             relative_path = %s
             filename = %s
           |}
@@ -201,7 +174,6 @@ let rec evaluate_parser_value
                x |> List.map escape_lua_str |> String.concat ", "
                |> Printf.sprintf "{%s}")
              aftertext_matched_groups)
-          metadata external_metadata
           (escape_lua_str !(reg.relative_path))
           (escape_lua_str !(reg.filename))
       in

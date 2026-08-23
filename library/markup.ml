@@ -27,6 +27,7 @@ let parse ?(disable_external = false) ?(external_metadata = [])
       file_reader;
       file_writer;
       fs_copy;
+      lua_state = None;
     }
   in
 
