@@ -6,8 +6,8 @@ let rec list_markup_files root path : string list =
     | _ -> [])
 
 let build_project input output http_root =
-  assert (Sys.is_directory input) |> ignore;
-  assert (Sys.is_directory output) |> ignore;
+  assert (Sys.is_directory input);
+  assert ((not (Sys.file_exists output)) || Sys.is_directory output);
 
   ignore @@ Fs.create_dir_if_not_exists output;
 
