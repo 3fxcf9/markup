@@ -1,10 +1,10 @@
-css_file_link common/static/css/common.css
+css_file_link static/css/common.css
 
 parser back_link
 	build_html
 		lua
-		if relative_path == "." then return "" else
-			local parent = relative_path:gsub("[^/]+$", "index")
+		if file_path == "index.markup" then return "" else
+			local parent = dirname(file_path):gsub("[^/]+$", "index.markup")
 			return string.format([[
 				<div class="back">
 					<a class="back-button" href="..">

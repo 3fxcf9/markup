@@ -32,10 +32,17 @@ let rec collect_indented_lines (lines : string list) (level : int) :
       (unindented_line :: indented_lines, rest')
   | _ -> ([], lines)
 
-let resolve_path (reg : registry) (path : string) : string =
+let path_relative_to_root (reg : registry) (path : string) : string =
   (if String.starts_with ~prefix:"/" path then path
-   else Filename.concat !(reg.relative_path) path)
+   else Filename.concat (Filename.dirname !(reg.file_path)) path)
   |> Fs.normalize_path
+
+let resolve_path (reg : registry) (path : string) : string =
+  let relative_to_root =
+    if String.starts_with ~prefix:"/" path then path
+    else Filename.concat (Filename.dirname !(reg.file_path)) path
+  in
+  Filename.concat reg.input_path relative_to_root |> Fs.normalize_path
 
 let rec parse_document (reg : registry) (lines : string list) : particle list =
   if reg.depth >= 100 then
@@ -52,23 +59,20 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
         parse_document reg rest
     | line :: rest
       when Filename.check_suffix line ".markup"
-           && resolve_path reg line |> reg.file_reader |> Option.is_some ->
-        let filepath = resolve_path reg line in
-        Debug.log ~cat:Parsing "Markup file inclusion: %s" filepath;
+           && resolve_path reg line |> Fs.read_file |> Result.is_ok ->
+        let relative_to_root = path_relative_to_root reg line in
+        Debug.log ~cat:Parsing "Markup file inclusion: %s" relative_to_root;
         let content =
-          reg.file_reader filepath |> Option.get |> String.split_on_char '\n'
+          resolve_path reg line |> Fs.read_file |> Result.get_ok
+          |> String.split_on_char '\n'
         in
-        let old_relative_path = reg.relative_path in
-        let old_filename = reg.filename in
-        reg.relative_path <- ref (Filename.dirname filepath);
-        reg.filename <-
-          ref (filepath |> Filename.basename |> Filename.chop_extension);
+        let old_path = reg.file_path in
+        reg.file_path <- ref relative_to_root;
         reg.depth <- reg.depth + 1;
         let included_particles =
           make_markup_include_particle (parse_document reg content)
         in
-        reg.relative_path <- old_relative_path;
-        reg.filename <- old_filename;
+        reg.file_path <- old_path;
         reg.depth <- reg.depth - 1;
         included_particles :: parse_document reg rest
     | line :: rest ->
@@ -121,6 +125,7 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
                 content = "";
                 matched_groups = None;
                 subparticles;
+                file_path = !(reg.file_path);
               }
               :: parse_document reg rest'
           | `Fallback parser ->
@@ -131,6 +136,7 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
                 content = "";
                 matched_groups = None;
                 subparticles;
+                file_path = !(reg.file_path);
               }
               :: parse_document reg rest'
           | `Pattern ({ markup = Some m; _ }, _) ->
@@ -144,6 +150,7 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
                 content = "";
                 matched_groups = Some groups;
                 subparticles;
+                file_path = !(reg.file_path);
               }
               :: parse_document reg rest'
         end

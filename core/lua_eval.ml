@@ -3,23 +3,29 @@ open Types
 
 let getopt o = match o with Some v -> v | None -> raise Not_found
 
+let get_input_path reg path =
+  Filename.concat reg.input_path path |> Fs.normalize_path
+
+let get_output_path reg path =
+  Filename.concat reg.output_path path |> Fs.normalize_path
+
 (* Custom functions exposed to lua *)
 let read_file_from_disk reg ls =
-  let path = LuaL.checkstring ls 1 in
-  match reg.file_reader path with
-  | None ->
+  let path = LuaL.checkstring ls 1 |> get_input_path reg in
+  match Fs.read_file path with
+  | Error _ ->
       Debug.error "Read error: file not found";
       Lua.pushnil ls;
       Lua.pushstring ls "File not found";
       2
-  | Some contents ->
+  | Ok contents ->
       Lua.pushstring ls contents;
       1
 
 let write_file_to_disk reg ls =
-  let path = LuaL.checkstring ls 1 in
+  let path = LuaL.checkstring ls 1 |> get_output_path reg in
   let contents = LuaL.checkstring ls 2 in
-  match reg.file_writer path contents with
+  match Fs.write_file path contents with
   | Ok () ->
       Lua.pushboolean ls true;
       1
@@ -30,9 +36,9 @@ let write_file_to_disk reg ls =
       2
 
 let copy_file_or_folder reg ls =
-  let src = LuaL.checkstring ls 1 in
-  let dest = LuaL.checkstring ls 2 in
-  match reg.fs_copy src dest with
+  let src = LuaL.checkstring ls 1 |> get_input_path reg in
+  let dest = LuaL.checkstring ls 2 |> get_output_path reg in
+  match Fs.copy src dest with
   | Ok () ->
       Lua.pushboolean ls true;
       1
@@ -158,6 +164,20 @@ let get_state ?markup_parser (reg : registry) : Lua.state =
       Lua.setglobal ls "escape";
       Lua.pushocamlfunction ls hash;
       Lua.setglobal ls "hash";
+      Lua.pushocamlfunction ls (fun ls ->
+          LuaL.checkstring ls 1 |> Filename.dirname |> Lua.pushstring ls;
+          1);
+      Lua.setglobal ls "dirname";
+      Lua.pushocamlfunction ls (fun ls ->
+          LuaL.checkstring ls 1 |> Filename.basename |> Lua.pushstring ls;
+          1);
+      Lua.setglobal ls "basename";
+      Lua.pushocamlfunction ls (fun ls ->
+          LuaL.checkstring ls 1
+          |> Filename.concat !(reg.file_path)
+          |> Fs.normalize_path |> Lua.pushstring ls;
+          1);
+      Lua.setglobal ls "path_relative_to_toplevel";
       Option.iter
         (fun f ->
           Lua.pushocamlfunction ls f;
@@ -183,14 +203,20 @@ let get_state ?markup_parser (reg : registry) : Lua.state =
       reg.lua_state <- Some ls;
       ls
 
-let eval_lua ?markup_parser (reg : registry) (lua_func : string)
-    (globals : string) =
+let eval_lua ?markup_parser ~particle_file_path (reg : registry)
+    (lua_func : string) (globals : string) =
   let ls = get_state ?markup_parser reg in
 
   Fun.protect
     ~finally:(fun () -> Lua.settop ls 0)
     (fun () ->
       try
+        Lua.pushocamlfunction ls (fun ls ->
+            LuaL.checkstring ls 1
+            |> Filename.concat (Filename.dirname particle_file_path)
+            |> Fs.normalize_path |> Lua.pushstring ls;
+            1);
+        Lua.setglobal ls "path_relative_to_file";
         run_chunk ls globals;
         run_chunk ~nresults:1 ls lua_func;
 

@@ -5,6 +5,8 @@ title Basic parsers
 parser comment
 	cue //
 
+## HTML, CSS and JS embedding
+
 parser html
 	raw
 	build_html $content
@@ -26,15 +28,15 @@ parser css
 
 parser css_file
 	head
-	build_html lua return '<style>' .. read_file(this.arg) .. '</style>'
+	build_html lua return '<style>' .. read_file(path_relative_to_file(this.arg)) .. '</style>'
 
 parser css_file_link
 	head
 	build_html
 		lua
-		local dirname = this.arg:match("(.*/)")
-		fs_copy(this.arg, dirname)
-		return string.format('<link rel="stylesheet" href="/%s"/>', this.arg)
+		local path = path_relative_to_file(this.arg)
+		fs_copy(path, dirname(path))
+		return string.format('<link rel="stylesheet" href="/%s"/>', path)
 
 parser js
 	raw
@@ -43,15 +45,17 @@ parser js
 
 parser js_file
 	end_of_body
-	build_html lua return '<script>' .. read_file(this.arg) .. '</script>'
+	build_html lua return '<script>' .. read_file(path_relative_to_file(this.arg)) .. '</script>'
 
 parser js_file_src
 	end_of_body
 	build_html
 		lua
-		local dirname = this.arg:match("(.*/)")
-		fs_copy(this.arg, dirname)
-		return string.format('<script src="/%s"></script>', this.arg)
+		local path = path_relative_to_file(this.arg)
+		fs_copy(path, dirname(path))
+		return string.format('<script src="/%s"></script>', path)
+
+## Document structure
 
 parser div
 	build_html
@@ -141,15 +145,16 @@ parser table_of_contents
 				return render(root.children, true)
 			end
 
-			local path = relative_path .. '/' .. filename
-			return generate_toc(external_metadata[path].headings or {})
+			if external_metadata[file_path] then -- path of the top level file (if this.file_path was used, the toc would display headings of _this_ file)
+				return generate_toc(external_metadata[file_path].headings or {})
+			else
+				return generate_toc(metadata.headings or {}) -- allow use in single document mode but only after all the headings
+			end
 
 ## Blocs
 parser hrule
+	cue ---
 	build_html <hr/>
-
-parser link
-	build_html lua return string.format('<a href="%s">%s</a>', this.atoms[2], table.concat(this.atoms, " ", 3))
 
 parser code
 	cue code
@@ -183,3 +188,9 @@ parser todo
 		return string.format('<li><div class="check-icon">%s</div>%s</li>', icon, this.content)
 	list_wrap <ul>$elements</ul>
 	arg_as_content
+
+## Images
+
+parser images
+	pattern .*\.[jJ][pP][eE]?\|.*\.[pP][nN][gG]\|.*\.[gG][iI][fF]
+	build_html lua return string.format('<img src="%s"/>', relative_path(this.matched_groups[1]))

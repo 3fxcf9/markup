@@ -1,3 +1,5 @@
+let ( >> ) f g x = g (f x)
+
 let rec list_markup_files root path : string list =
   Fs.list_directory root path
   |> List.concat_map (function
@@ -13,27 +15,10 @@ let build_project input output http_root =
 
   let markup_files =
     list_markup_files input ""
-    |> List.map (fun f -> (f, Fs.read_file (Filename.concat input f)))
-  in
-
-  let file_reader relative_path =
-    Debug.log ~cat:IO "\027[95mFile reader called on file %s\027[0m"
-      relative_path;
-    let path = Filename.concat input relative_path in
-    try Some (In_channel.with_open_bin path In_channel.input_all)
-    with _ -> None
-  in
-  let file_writer relative_path contents =
-    Debug.log ~cat:IO "\027[95mFile writer called on file %s\027[0m"
-      relative_path;
-    let path = Filename.concat output relative_path in
-    Fs.write_file path contents
-  in
-  let fs_copy src dst =
-    Debug.log ~cat:IO "\027[95mCopy called: %s -> %s\027[0m" src dst;
-    let src = Filename.concat input src in
-    let dst = Filename.concat output dst in
-    Fs.copy src dst
+    |> List.filter_map (fun f ->
+        Fs.read_file (Filename.concat input f)
+        |> Result.to_option
+        |> Option.map (fun c -> (f, c)))
   in
 
   (* Two pass approach. *)
@@ -42,11 +27,9 @@ let build_project input output http_root =
   let external_metadata =
     markup_files
     |> List.map (fun (name, content) ->
-        ( name |> Filename.remove_extension,
+        ( name,
           !(content
-           |> Markup.parse ~relative_path:(Filename.dirname name)
-                ~filename:(name |> Filename.basename |> Filename.chop_extension)
-                ~file_reader ~file_writer ~fs_copy
+           |> Markup.parse ~file_path:name ~input_path:input ~output_path:output
            |> snd) ))
     (* FIXME *)
   in
@@ -72,10 +55,8 @@ let build_project input output http_root =
         |> Fs.create_dir_if_not_exists |> Result.is_ok
       then
         content
-        |> Markup.parse ~external_metadata
-             ~relative_path:(Filename.dirname name)
-             ~filename:(name |> Filename.basename |> Filename.chop_extension)
-             ~file_reader ~file_writer ~fs_copy
+        |> Markup.parse ~external_metadata ~file_path:name ~input_path:input
+             ~output_path:output
         |> fst |> Fs.write_file output_path |> ignore)
 
 let build_single_file input output http_root =
@@ -97,18 +78,8 @@ let build_single_file input output http_root =
      |> Filename.concat output)
       ^ ".html")
   in
-  let file_reader relative_path =
-    Debug.log ~cat:IO "File reader called on file %s" relative_path;
-    let path = Filename.concat (Filename.dirname output_path) relative_path in
-    try Some (In_channel.with_open_bin path In_channel.input_all)
-    with _ -> None
-  in
-  let file_writer relative_path contents =
-    Debug.log ~cat:IO "File writer called on file %s" relative_path;
-    let path = Filename.concat (Filename.dirname output_path) relative_path in
-    Fs.write_file path contents
-  in
 
   Fs.read_file input
-  |> Markup.parse ~file_reader ~file_writer
-  |> fst |> Fs.write_file output_path |> ignore
+  |> Result.iter
+       (Markup.parse ~input_path:input ~output_path:output
+       >> fst >> Fs.write_file output_path >> ignore)

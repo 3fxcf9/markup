@@ -1,5 +1,8 @@
 debug on
 
+parser link
+	build_html <a href="$atoms[1]">$replaced</a>
+	aftertext lua return table.concat(this.atoms, " ", 3)
 parser url_link
 	pattern https?://
 	build_html <a href="$atoms[0]">$replaced</a>

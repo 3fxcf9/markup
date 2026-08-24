@@ -71,8 +71,8 @@ parser subject
 		<a class="subject" href="$arg">
 			<div class="cover" style="background-color: #aaaaff22"></div>
 			<div class="content">
-				<div class="subject-title">$external_metadata[$arg/index][title]</div>
-				<div class="subject-teacher">$external_metadata[$arg/index][teacher]</div>
+				<div class="subject-title">$external_metadata[$arg/index.markup][title]</div>
+				<div class="subject-teacher">$external_metadata[$arg/index.markup][teacher]</div>
 			</div>
 		</a>
 	list_wrap <div class="subject-grid">$elements</div>

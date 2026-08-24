@@ -49,10 +49,12 @@ let rec particle_lua_self (p : particle) =
     content = %s,
     arg = %s,
     matched_groups = %s,
-    subparticles = %s
-}|}
+    subparticles = %s,
+    file_name = %s
+    }|}
     (escape_lua_str p.parser.name)
     atoms_lua (escape_lua_str p.content) arg matched_groups_lua subparticles_lua
+    (escape_lua_str p.file_path)
 
 let replace_list_access (name : string) (list : string list) (s : string) :
     string =
@@ -78,7 +80,7 @@ let replace_assoc_list_access (name : string)
 
 let replace_external_metadata_access (reg : registry) (s : string) : string =
   let re =
-    "\\$external_metadata\\[\\([a-zA-Z0-9-_/]+\\)\\]\\[\\([a-z0-9_]+\\)\\]"
+    "\\$external_metadata\\[\\([a-zA-Z0-9-_./]+\\)\\]\\[\\([a-z0-9_]+\\)\\]"
     |> Str.regexp
   in
   try
@@ -86,7 +88,8 @@ let replace_external_metadata_access (reg : registry) (s : string) : string =
       (fun matched ->
         let file =
           Str.matched_group 1 matched
-          |> Filename.concat !(reg.relative_path)
+          |> Filename.concat (Filename.dirname !(reg.file_path))
+             (* Path is relative to the toplevel markup file (begin of the inclusion chain) *)
           |> Fs.normalize_path
         in
         let key = Str.matched_group 2 matched in
@@ -151,10 +154,6 @@ let rec evaluate_parser_value
         |> String.concat "" |> Printf.sprintf {|"%s"|}
       in
 
-      (* [metadata] and [external_metadata] are exposed to Lua as globals
-         set up once per document by [Lua_eval.get_state] (backed by an
-         [__index] getter reading straight from [reg]), so they don't need
-         to be serialized here on every call. *)
       let globals =
         Printf.sprintf
           {|
@@ -163,8 +162,7 @@ let rec evaluate_parser_value
             parent_html = %s
             replaced = %s
             aftertext_matched_groups = %s
-            relative_path = %s
-            filename = %s
+            file_path = %s
           |}
           (particle_lua_self p) "nil"
           (escape_lua_str parent_html)
@@ -174,8 +172,7 @@ let rec evaluate_parser_value
                x |> List.map escape_lua_str |> String.concat ", "
                |> Printf.sprintf "{%s}")
              aftertext_matched_groups)
-          (escape_lua_str !(reg.relative_path))
-          (escape_lua_str !(reg.filename))
+          (escape_lua_str !(reg.file_path))
       in
 
       let markup_parser ls =
@@ -185,7 +182,8 @@ let rec evaluate_parser_value
         |> evaluate_particles reg "" |> fst |> Lua.pushstring ls;
         1
       in
-      Lua_eval.eval_lua ~markup_parser reg lua_func globals
+      Lua_eval.eval_lua reg ~markup_parser ~particle_file_path:p.file_path
+        lua_func globals
 
 and evaluate_wrap (wrap_replacestring : string) (html : string) =
   wrap_replacestring |> String.replace_all ~sub:"$elements" ~by:html

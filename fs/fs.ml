@@ -47,7 +47,8 @@ let find_mde dir_path =
   with Sys_error _ -> None
 
 let read_file path =
-  try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  try Ok (In_channel.with_open_bin path In_channel.input_all)
+  with _ -> Error "Failed to read file"
 
 let normalize_path path =
   let parts = String.split_on_char '/' path in
@@ -65,7 +66,13 @@ let normalize_path path =
   in
   String.concat "/" (aux [] parts)
 
-let copy_file src dst = write_file dst (read_file src)
+let copy_file src dst =
+  match read_file src with
+  | Ok contents -> (
+      match write_file dst contents with
+      | Ok () -> Ok ()
+      | Error _ -> Error "Copy error: Failed to write destionation file")
+  | Error _ -> Error "Copy error: Failed to read source file"
 
 let rec copy src dest =
   try

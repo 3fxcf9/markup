@@ -184,6 +184,7 @@ type particle = {
   content : string;
   matched_groups : string list option;
   subparticles : particle list;
+  file_path : string;
 }
 
 let make_raw_particle (lines : string list) : particle =
@@ -193,6 +194,7 @@ let make_raw_particle (lines : string list) : particle =
     content = String.concat "\n" lines;
     matched_groups = None;
     subparticles = [];
+    file_path = "";
   }
 
 let make_markup_include_particle (subparticles : particle list) : particle =
@@ -202,6 +204,7 @@ let make_markup_include_particle (subparticles : particle list) : particle =
     content = "";
     matched_groups = None;
     subparticles;
+    file_path = "";
   }
 
 let make_parser_debug_particle (parser : parser_def) : particle =
@@ -211,6 +214,7 @@ let make_parser_debug_particle (parser : parser_def) : particle =
     content = pp_parser_def parser;
     matched_groups = None;
     subparticles = [];
+    file_path = "";
   }
 
 let bold_cyan = Printf.sprintf "\027[36;1m%s\027[0m"
@@ -254,10 +258,8 @@ type registry = {
   mutable end_of_body : string ref;
   mutable metadata : (string * string) list ref;
   external_metadata : (string * (string * string) list) list;
-  mutable relative_path : string ref;
-  mutable filename : string ref;
-  file_reader : string -> string option;
-  file_writer : string -> string -> (unit, string) result;
-  fs_copy : string -> string -> (unit, string) result;
+  mutable file_path : string ref;
+  input_path : string;
+  output_path : string;
   mutable lua_state : Lua_api.Lua.state option;
 }

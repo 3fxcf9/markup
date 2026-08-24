@@ -1,7 +1,7 @@
 header.lib.markup
 
-css_file_link common/static/css/subject.css
-js_file_src common/static/js/subject_search.js
+css_file_link static/css/subject.css
+js_file_src static/js/subject_search.js
 
 parser teacher
 	metadata $arg
@@ -12,8 +12,8 @@ parser chapter
 	cue chap
 	build_html
 		<a class="chapter" href="$arg/course.html">
-			<span class="chapter-title">$external_metadata[$arg/course][title]</span>
-			<span class="chapter-date">$external_metadata[$arg/course][date]</span>
+			<span class="chapter-title">$external_metadata[$arg/course.markup][title]</span>
+			<span class="chapter-date">$external_metadata[$arg/course.markup][date]</span>
 		</a>
 	list_wrap
 		<div class="search">

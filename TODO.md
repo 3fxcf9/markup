@@ -2,6 +2,7 @@
 
 - Write builtin parsers
 - optimize ?
+- use http_root
 
 ### Parser syntax
 

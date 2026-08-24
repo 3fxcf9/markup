@@ -1,7 +1,5 @@
 let parse ?(disable_external = false) ?(external_metadata = [])
-    ?(relative_path = "") ?(filename = "") ?(file_reader = Fun.const None)
-    ?(file_writer = fun _ _ -> Error "disabled")
-    ?(fs_copy = fun _ _ -> Error "disabled") input =
+    ?(file_path = "") ?(input_path = ".") ?(output_path = ".") input =
   (* let parsers_content = *)
   (*   In_channel.with_open_bin "builtin_parsers.markup" In_channel.input_all *)
   (*   |> String.split_on_char '\n' *)
@@ -21,13 +19,11 @@ let parse ?(disable_external = false) ?(external_metadata = [])
       metadata = ref [];
       debug = ref false;
       external_metadata;
-      relative_path = ref relative_path;
-      filename = ref filename;
+      file_path = ref file_path;
       depth = 0;
-      file_reader;
-      file_writer;
-      fs_copy;
       lua_state = None;
+      input_path;
+      output_path;
     }
   in
 
