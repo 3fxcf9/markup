@@ -169,9 +169,6 @@ parser math
 	raw
 	build_html <code class="katex-display">$content</code>
 
-parser sidenote
-	build_html lua return string.format('<span class="sidenote-number"><small class="sidenote">%s%s</small></span>', this.arg == "" and "" or '<p>'..this.arg..'</p>', this.content)
-
 ## Lists
 
 parser list

@@ -21,6 +21,9 @@ parser inline_underline
 parser inline_strikethrough
 	aftertext pattern ~~\([^~]*\)~~
 	build_html <s>$aftertext_matched_groups[1]</s>
+parser inline_sidenote
+	aftertext pattern ((\([^~]*\)))
+	build_html <span class="sidenote-number"><small class="sidenote">$aftertext_matched_groups[1]</small></span>
 
 Please do not change the following two parsers, as the inline replacement strategy assumes this implementation (it only replaces matches that are prefixed by a string containing an even number of backticks and an even number of dollars).
 parser inline_math
@@ -97,6 +100,7 @@ parser inline_markup
 		inline_highlight
 		inline_underline
 		inline_strikethrough
+		inline_sidenote
 		inline_footnotes
 		// The two following parsers must be last
 		inline_math
