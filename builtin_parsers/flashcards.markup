@@ -10,15 +10,19 @@ The flashcards parser handles all of these syntaxes:
 code markup
 	Q: <front> A: <back>
 		reversed
+
 	Q: <front>
 		A: <back>
+
 	Q: <front>
 		A:
 			<back>
 		reversed
+
 	Q:
 		<front>
 		A: <back>
+
 	Q:
 		<front>
 		A:
@@ -111,7 +115,7 @@ parser generate_flashcards_tsv
 		end
 		local contents = table.concat(tsv_lines, "\n")
 		-- write the file
-		local output_path = relative_path .. "/flashcards.tsv"
+		local output_path = dirname(file_path) .. "/flashcards.tsv"
 		write_file(output_path, contents)
 		return "" -- this is how to execute code without producing HTML
 

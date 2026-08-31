@@ -64,7 +64,8 @@ let normalize_path path =
         end
     | x :: xs -> aux (x :: acc) xs
   in
-  String.concat "/" (aux [] parts)
+  let normalized = aux [] parts |> String.concat "/" in
+  if String.starts_with ~prefix:"/" path then "/" ^ normalized else normalized
 
 let copy_file src dst =
   match read_file src with

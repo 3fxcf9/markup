@@ -36,7 +36,7 @@ parser css_file_link
 		lua
 		local path = path_relative_to_file(this.arg)
 		fs_copy(path, dirname(path))
-		return string.format('<link rel="stylesheet" href="/%s"/>', path)
+		return string.format('<link rel="stylesheet" href="%s%s"/>', http_root, path)
 
 parser js
 	raw
@@ -53,7 +53,7 @@ parser js_file_src
 		lua
 		local path = path_relative_to_file(this.arg)
 		fs_copy(path, dirname(path))
-		return string.format('<script src="/%s"></script>', path)
+		return string.format('<script src="%s%s"></script>', http_root, path)
 
 ## Document structure
 

@@ -261,5 +261,6 @@ type registry = {
   mutable file_path : string ref;
   input_path : string;
   output_path : string;
+  http_root : string;
   mutable lua_state : Lua_api.Lua.state option;
 }

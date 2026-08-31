@@ -126,6 +126,7 @@ let rec evaluate_parser_value
   | ReplaceString expr -> (
       try
         expr
+        |> String.replace_all ~sub:"$http_root" ~by:reg.http_root
         |> String.replace_all ~sub:"$content" ~by:p.content
         |> String.replace_all ~sub:"$arg"
              ~by:(p.atoms |> List.tl |> String.concat " ")
@@ -163,6 +164,7 @@ let rec evaluate_parser_value
             replaced = %s
             aftertext_matched_groups = %s
             file_path = %s
+            http_root = %s
           |}
           (particle_lua_self p) "nil"
           (escape_lua_str parent_html)
@@ -173,6 +175,7 @@ let rec evaluate_parser_value
                |> Printf.sprintf "{%s}")
              aftertext_matched_groups)
           (escape_lua_str !(reg.file_path))
+          (escape_lua_str reg.http_root)
       in
 
       let markup_parser ls =
@@ -261,9 +264,7 @@ and evaluate_particles (reg : registry) (parent_html : string)
                         ~aftertext_matched_groups:(Some groups)
                         ~replaced_text:(Some (List.hd groups))
                     end
-                    else (
-                      evaluate_metadata reg part ~parent_html metadata;
-                      Str.matched_string parent_html))
+                    else Str.matched_string parent_html)
                   parent_html
               in
               (html, part)

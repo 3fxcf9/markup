@@ -40,7 +40,8 @@ code
 parser footnotes
 	cue inline_footnotes
 	aftertext pattern \^\([1-9A-Za-z_-]+\)
-	build_html
+	build_html ###############
+	aa
 		lua
 		local i = 0
 		for j, v in ipairs(metadata["footnotes"] or {}) do

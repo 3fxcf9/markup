@@ -1,15 +1,29 @@
+../../common/course.lib.markup
+
 title Chapter 2
 date 13/01/2026
 
-card question 1
-	answer 1
+Q: question1 A: answer1
+	reversed
 
-longcard
-	question 2
-	back
-		answer 2
+Q: question2
+	A: answer2
 
-Q: question 3 A: answer 3
+Q: question3
+	A:
+		answer3
+	reversed
+
+Q:
+	question4
+	A: answer4
+Q:
+	question5
+	A:
+		answer5
+
+code
+	generate_flashcards_tsv
 
 generate_flashcards_tsv
 
@@ -20,3 +34,6 @@ code tsv
 	<p>question 3</p>	<p>answer 3</p>
 
 A scheduler can then read all flashcards.tsv files in the project.
+
+Exo maths-info.
+	link maths_info_centrale.html

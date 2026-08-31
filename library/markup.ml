@@ -1,5 +1,6 @@
 let parse ?(disable_external = false) ?(external_metadata = [])
-    ?(file_path = "") ?(input_path = ".") ?(output_path = ".") input =
+    ?(file_path = "") ?(input_path = ".") ?(output_path = ".")
+    ?(http_root = "/") input =
   (* let parsers_content = *)
   (*   In_channel.with_open_bin "builtin_parsers.markup" In_channel.input_all *)
   (*   |> String.split_on_char '\n' *)
@@ -24,6 +25,7 @@ let parse ?(disable_external = false) ?(external_metadata = [])
       lua_state = None;
       input_path;
       output_path;
+      http_root;
     }
   in
 

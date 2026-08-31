@@ -30,6 +30,7 @@ let build_project input output http_root =
         ( name,
           !(content
            |> Markup.parse ~file_path:name ~input_path:input ~output_path:output
+                ~http_root
            |> snd) ))
     (* FIXME *)
   in
@@ -56,7 +57,7 @@ let build_project input output http_root =
       then
         content
         |> Markup.parse ~external_metadata ~file_path:name ~input_path:input
-             ~output_path:output
+             ~output_path:output ~http_root
         |> fst |> Fs.write_file output_path |> ignore)
 
 let build_single_file input output http_root =

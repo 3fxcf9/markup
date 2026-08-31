@@ -1,0 +1,23 @@
+../../common/course.lib.markup
+
+title Maths-informatique Centrale
+
+Soit $n$ un entier naturel. On note $S.n$ l’ensemble des permutations de l’intervalle d’entiers $\icc{0,n-1}$. On note, pour un entier $k$ de cet intervalle, $c_{n,k}$ le nombre de permutations de $S_n$ ayant $n$ cycles à support disjoints avec par convention $c_{n,0} = 0$ et $c_{n,n+1} = 0$.
+
+On munit l’univers $\Omega = S_n$ de la loi de probabilité uniforme, et on considére la variable aléatoire $C_n$ comptant le nombre de cycles intervenant dans la décomposition d’une permutation en cycles à supports disjoints.
+
+On pose enfin $P_n(X) = \sum_{k=1}^{n}C_{n,k}X^k$.
+
+1. Calculer $\P_n(1)$ et exprimer $E(C_n)$ à l’aide de $\P_n$ et $\P_n'$.
+
+
+This is normal text.
+
+Here is $x^2 + y^2$ in a sentence.
+
+math
+	x^2 + y^2
+	\frac{a}{b}
+	\int_0^1 x^2 dx
+
+More normal text.
