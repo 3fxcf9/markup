@@ -189,5 +189,16 @@ parser todo
 ## Images
 
 parser images
-	pattern .*\.[jJ][pP][eE]?\|.*\.[pP][nN][gG]\|.*\.[gG][iI][fF]
-	build_html lua return string.format('<img src="%s"/>', relative_path(this.matched_groups[1]))
+	pattern \(.*\.\([jJ][pP][eE]?[gG]\)\|\([pP][nN][gG]\)\|\([gG][iI][fF]\)\)$
+	build_html
+		lua
+		local path = path_relative_to_file(this.matched_groups[1])
+		print(path)
+		fs_copy(path, dirname(path))
+		return string.format('<img src="%s"/>', this.matched_groups[1])
+
+parser images
+	pattern \(.*\.[sS][vV][gG]\)$
+	build_html
+		lua
+		return read_file(path_relative_to_file(this.matched_groups[1]))
