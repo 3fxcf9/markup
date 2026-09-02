@@ -18,7 +18,7 @@ parser named_environment
 				defprop={"definition-proposition", "Définition-proposition"},
 		})[this.matched_groups[2]])
 		if this.arg == "" then
-			return string.format('<div class="environment environment-%s">%s</div>', env_name, this.content)
+			return string.format('<div class="environment environment-%s"><div class="environment-title">%s</div>%s</div>', env_name, title, this.content)
 		else
 			return string.format('<div class="environment environment-%s"><div class="environment-title">%s — %s</div>%s</div>', env_name, title, this.arg, this.content)
 		end
