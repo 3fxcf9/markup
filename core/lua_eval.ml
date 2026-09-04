@@ -174,7 +174,7 @@ let get_state ?markup_parser (reg : registry) : Lua.state =
       Lua.setglobal ls "basename";
       Lua.pushocamlfunction ls (fun ls ->
           LuaL.checkstring ls 1
-          |> Filename.concat !(reg.file_path)
+          |> Filename.concat (Filename.dirname !(reg.file_path))
           |> Fs.normalize_path |> Lua.pushstring ls;
           1);
       Lua.setglobal ls "path_relative_to_toplevel";
