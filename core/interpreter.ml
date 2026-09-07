@@ -121,7 +121,7 @@ let group_consecutive_by_name (particles : particle list) =
 let rec evaluate_parser_value
     ?(aftertext_matched_groups : string list option = None)
     ?(replaced_text : string option = None) (reg : registry) (p : particle)
-    ~(parent_html : string) (pval : parser_value) : string =
+    ~(parent_particle : particle) (pval : parser_value) : string =
   match pval with
   | ReplaceString expr -> (
       try
@@ -161,13 +161,17 @@ let rec evaluate_parser_value
             this = %s
             ctx = %s
             parent_html = %s
+            parent_name = %s
+            parent_content = %s
             replaced = %s
             aftertext_matched_groups = %s
             file_path = %s
             http_root = %s
           |}
           (particle_lua_self p) "nil"
-          (escape_lua_str parent_html)
+          (escape_lua_str parent_particle.html)
+          (escape_lua_str parent_particle.parser.name)
+          (escape_lua_str parent_particle.content)
           (Option.fold ~none:"nil" ~some:escape_lua_str replaced_text)
           (Option.fold ~none:"nil"
              ~some:(fun x ->
@@ -182,31 +186,42 @@ let rec evaluate_parser_value
         let open Lua_api in
         let lines = LuaL.checkstring ls 1 |> String.split_on_char '\n' in
         Parser.parse_document reg lines
-        |> evaluate_particles reg "" |> fst |> Lua.pushstring ls;
+        |> evaluate_particles reg parent_particle
+        |> fst |> Lua.pushstring ls;
         1
       in
-      Lua_eval.eval_lua reg ~markup_parser ~particle_file_path:p.file_path
-        lua_func globals
+      let inline_parser ls =
+        let open Lua_api in
+        LuaL.checkstring ls 1 |> String.split_on_char '\n'
+        |> List.map (fun line ->
+            [ Printf.sprintf "* %s" line; "\tinline_markup" ])
+        |> List.flatten |> Parser.parse_document reg
+        |> evaluate_particles reg parent_particle
+        |> fst |> Lua.pushstring ls;
+        1
+      in
+      Lua_eval.eval_lua reg ~markup_parser ~inline_parser
+        ~particle_file_path:p.file_path lua_func globals
 
 and evaluate_wrap (wrap_replacestring : string) (html : string) =
   wrap_replacestring |> String.replace_all ~sub:"$elements" ~by:html
 
 and evaluate_metadata ?(aftertext_matched_groups : string list option = None)
     ?(replaced_text : string option = None) (reg : registry) (part : particle)
-    ~(parent_html : string) (pval_opt : parser_value option) : unit =
+    ~(parent_particle : particle) (pval_opt : parser_value option) : unit =
   pval_opt
   |> Option.iter (fun pval ->
       let new_record =
-        evaluate_parser_value reg part ~parent_html pval
+        evaluate_parser_value reg part ~parent_particle pval
           ~aftertext_matched_groups ~replaced_text
       in
       if new_record <> "" then
         reg.metadata := (part.parser.name, new_record) :: !(reg.metadata))
 
-and evaluate_particles (reg : registry) (parent_html : string)
+and evaluate_particles (reg : registry) (parent_particle : particle)
     (particles : particle list) : string * particle list =
-  let evaluate_particle p : string * particle =
-    let output, evaluated_particle =
+  let evaluate_particle p : particle =
+    let evaluated_particle =
       match p with
       (* No produced html *)
       | { subparticles; parser = { build_html = None; metadata; _ }; _ } as part
@@ -214,12 +229,12 @@ and evaluate_particles (reg : registry) (parent_html : string)
           let content, evaluated_subparticles =
             subparticles
             |> List.filter (fun s -> Option.is_none s.parser.aftertext)
-            |> evaluate_particles reg ""
+            |> evaluate_particles reg part
           in
           evaluate_metadata reg
-            { part with subparticles = evaluated_subparticles }
-            ~parent_html metadata;
-          ("", { part with content; subparticles = evaluated_subparticles })
+            { part with content; subparticles = evaluated_subparticles }
+            ~parent_particle metadata;
+          { part with content; subparticles = evaluated_subparticles }
       (* Non-aftertext leaf *)
       | {
           subparticles = [];
@@ -227,8 +242,11 @@ and evaluate_particles (reg : registry) (parent_html : string)
             { aftertext = None; build_html = Some build_html; metadata; _ };
           _;
         } as part ->
-          evaluate_metadata reg part ~parent_html metadata;
-          (evaluate_parser_value reg part ~parent_html build_html, part)
+          evaluate_metadata reg part ~parent_particle metadata;
+          let html =
+            evaluate_parser_value reg part ~parent_particle build_html
+          in
+          { part with html }
       (* Aftertext leaf *)
       | {
           subparticles = [];
@@ -256,35 +274,42 @@ and evaluate_particles (reg : registry) (parent_html : string)
                     if even_backticks_and_dollars_before parent_html start then begin
                       let groups = Utils.all_matching_groups parent_html in
 
-                      evaluate_metadata reg part ~parent_html metadata
+                      let parent_particle =
+                        { parent_particle with html = parent_html }
+                      in
+
+                      evaluate_metadata reg part ~parent_particle metadata
                         ~aftertext_matched_groups:(Some groups)
                         ~replaced_text:(Some (List.hd groups));
 
-                      evaluate_parser_value reg part ~parent_html build_html
+                      evaluate_parser_value reg part ~parent_particle build_html
                         ~aftertext_matched_groups:(Some groups)
                         ~replaced_text:(Some (List.hd groups))
                     end
                     else Str.matched_string parent_html)
-                  parent_html
+                  parent_particle.html
               in
-              (html, part)
+              { part with html }
             end
           | `ParserValue pval -> begin
               let to_replace =
-                evaluate_parser_value reg part ~parent_html pval
+                evaluate_parser_value reg part ~parent_particle pval
               in
               let to_replace =
-                if String.is_empty to_replace then parent_html else to_replace
+                if String.is_empty to_replace then parent_particle.html
+                else to_replace
               in
               let replace_with =
-                evaluate_parser_value reg part ~parent_html build_html
+                evaluate_parser_value reg part ~parent_particle build_html
                   ~replaced_text:(Some to_replace)
               in
-              evaluate_metadata reg part ~parent_html metadata
+              evaluate_metadata reg part ~parent_particle metadata
                 ~replaced_text:(Some to_replace);
-              ( replace_first ~substring:to_replace ~new_text:replace_with
-                  parent_html,
-                part )
+              let html =
+                replace_first ~substring:to_replace ~new_text:replace_with
+                  parent_particle.html
+              in
+              { part with html }
             end)
       (* Node *)
       | {
@@ -297,47 +322,50 @@ and evaluate_particles (reg : registry) (parent_html : string)
           let content, evaluated_subparticles =
             subparticles
             |> List.filter (fun s -> Option.is_none s.parser.aftertext)
-            |> evaluate_particles reg ""
+            |> evaluate_particles reg document_particle
           in
           let particle_with_content =
             { part with content; subparticles = evaluated_subparticles }
           in
-          evaluate_metadata reg particle_with_content ~parent_html metadata;
+          evaluate_metadata reg particle_with_content ~parent_particle metadata;
           (* the node itself *)
-          let html =
-            evaluate_parser_value reg particle_with_content ~parent_html
+          let html : string =
+            evaluate_parser_value reg particle_with_content ~parent_particle
               current_build_html
           in
           (* aftertext children *)
-          let html' =
+          let html' : string =
             subparticles
             |> List.filter (fun s -> Option.is_some s.parser.aftertext)
             |> List.fold_left
-                 (fun acc p -> evaluate_particles reg acc [ p ] |> fst)
+                 (fun acc p ->
+                   evaluate_particles reg
+                     { parent_particle with html = acc }
+                     [ p ]
+                   |> fst)
                  html
           in
-          (html', particle_with_content)
+          { particle_with_content with html = html' }
     in
     if p.parser.head then (
-      reg.head := !(reg.head) ^ output;
-      ("", evaluated_particle))
+      reg.head := !(reg.head) ^ evaluated_particle.html;
+      { evaluated_particle with html = "" })
     else if p.parser.end_of_body then (
-      reg.end_of_body := !(reg.end_of_body) ^ output;
-      ("", evaluated_particle))
-    else (output, evaluated_particle)
+      reg.end_of_body := !(reg.end_of_body) ^ evaluated_particle.html;
+      { evaluated_particle with html = "" })
+    else evaluated_particle
   in
   let html, evaluated_particles =
     particles |> group_consecutive_by_name
     |> List.map (fun group ->
+        let evaluated_particles = group |> List.map evaluate_particle in
+        let html =
+          evaluated_particles |> List.map (fun p -> p.html) |> String.concat ""
+        in
         match group with
         | { parser = { list_wrap = Some w; _ }; _ } :: _ ->
-            let html, particles = List.split_map evaluate_particle group in
-            let html = String.concat "" html in
-            (evaluate_wrap w html, particles)
-        | _ :: _ ->
-            let html, particles = List.split_map evaluate_particle group in
-            let html = String.concat "" html in
-            (html, particles)
+            (evaluate_wrap w html, evaluated_particles)
+        | _ :: _ -> (html, evaluated_particles)
         | [] -> ("", []))
     |> List.split
   in

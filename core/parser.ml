@@ -123,6 +123,7 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
                 parser;
                 atoms;
                 content = "";
+                html = "";
                 matched_groups = None;
                 subparticles;
                 file_path = !(reg.file_path);
@@ -134,6 +135,7 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
                 parser;
                 atoms = "*" :: atoms;
                 content = "";
+                html = "";
                 matched_groups = None;
                 subparticles;
                 file_path = !(reg.file_path);
@@ -148,6 +150,7 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
                 parser;
                 atoms;
                 content = "";
+                html = "";
                 matched_groups = Some groups;
                 subparticles;
                 file_path = !(reg.file_path);

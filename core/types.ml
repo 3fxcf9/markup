@@ -19,6 +19,22 @@ type parser_def = {
   markup : string option;
 }
 
+let document_parser =
+  {
+    name = "document";
+    matching = `Cue "";
+    aftertext = None;
+    list_wrap = None;
+    (* escaped *)
+    build_html = Some (ReplaceString "$content");
+    markup = None;
+    head = false;
+    end_of_body = false;
+    raw = false;
+    metadata = None;
+    arg_as_content = true;
+  }
+
 let fallback_parser =
   {
     name = "paragraph";
@@ -182,16 +198,29 @@ type particle = {
   parser : parser_def;
   atoms : string list;
   content : string;
+  html : string;
   matched_groups : string list option;
   subparticles : particle list;
   file_path : string;
 }
+
+let document_particle : particle =
+  {
+    parser = document_parser;
+    atoms = "" :: [];
+    content = "";
+    html = "";
+    matched_groups = None;
+    subparticles = [];
+    file_path = "";
+  }
 
 let make_raw_particle (lines : string list) : particle =
   {
     parser = raw_parser;
     atoms = "" :: [];
     content = String.concat "\n" lines;
+    html = "";
     matched_groups = None;
     subparticles = [];
     file_path = "";
@@ -202,6 +231,7 @@ let make_markup_include_particle (subparticles : particle list) : particle =
     parser = markup_file_include_parser;
     atoms = "" :: [];
     content = "";
+    html = "";
     matched_groups = None;
     subparticles;
     file_path = "";
@@ -212,6 +242,7 @@ let make_parser_debug_particle (parser : parser_def) : particle =
     parser = parser_debug_parser;
     atoms = [ ""; parser.name ];
     content = pp_parser_def parser;
+    html = "";
     matched_groups = None;
     subparticles = [];
     file_path = "";

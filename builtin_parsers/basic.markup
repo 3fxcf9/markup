@@ -5,6 +5,10 @@ title Basic parsers
 parser comment
 	cue //
 
+parser arg
+	cue *
+	build_html $arg
+
 ## HTML, CSS and JS embedding
 
 parser html
@@ -193,12 +197,11 @@ parser images
 	build_html
 		lua
 		local path = path_relative_to_file(this.matched_groups[1])
-		print(path)
 		fs_copy(path, dirname(path))
 		return string.format('<img src="%s"/>', this.matched_groups[1])
 
-parser images
+parser svg_figures
 	pattern \(.*\.[sS][vV][gG]\)$
 	build_html
 		lua
-		return read_file(path_relative_to_file(this.matched_groups[1]))
+		return '<!--'..this.matched_groups[1]..'-->' .. read_file(path_relative_to_file(this.matched_groups[1]))

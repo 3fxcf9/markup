@@ -147,7 +147,7 @@ let run_chunk ?(nresults = 0) ls code =
 
 (** [get_state ?markup_parser reg] returns (and create if necessary) the Lua
     state, with the standard library opened and custom functions registered. *)
-let get_state ?markup_parser (reg : registry) : Lua.state =
+let get_state ?markup_parser ?inline_parser (reg : registry) : Lua.state =
   match reg.lua_state with
   | Some ls -> ls
   | None ->
@@ -183,6 +183,11 @@ let get_state ?markup_parser (reg : registry) : Lua.state =
           Lua.pushocamlfunction ls f;
           Lua.setglobal ls "parse_markup")
         markup_parser;
+      Option.iter
+        (fun f ->
+          Lua.pushocamlfunction ls f;
+          Lua.setglobal ls "inline")
+        inline_parser;
 
       (* [metadata] and [external_metadata] are exposed to Lua as read-only tables with an [__index] metamethod, so only the key the lua code reads are uilt. This avoid parsing it on every evaluation (huge optimization for large projects). *)
       set_lazy_global ls "metadata" (metadata_index reg);
@@ -203,9 +208,9 @@ let get_state ?markup_parser (reg : registry) : Lua.state =
       reg.lua_state <- Some ls;
       ls
 
-let eval_lua ?markup_parser ~particle_file_path (reg : registry)
+let eval_lua ?markup_parser ?inline_parser ~particle_file_path (reg : registry)
     (lua_func : string) (globals : string) =
-  let ls = get_state ?markup_parser reg in
+  let ls = get_state ?markup_parser ?inline_parser reg in
 
   Fun.protect
     ~finally:(fun () -> Lua.settop ls 0)
