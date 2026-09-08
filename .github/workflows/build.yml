@@ -1,0 +1,54 @@
+name: Build markup
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: markup-current
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Use OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5
+          dune-cache: true
+
+      - name: Install dependencies
+        run: opam install . --deps-only -y
+
+      - name: Build markup
+        run: opam exec -- dune build --profile release
+
+      - name: Prepare binary
+        run: |
+          cp _build/default/main/main.exe markup-linux-x86_64
+          chmod +x markup-linux-x86_64
+
+      - name: Create or update current release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view current >/dev/null 2>&1; then
+            gh release upload current \
+              markup-linux-x86_64 \
+              --clobber
+          else
+            gh release create current \
+              markup-linux-x86_64 \
+              --title "Current development build" \
+              --notes "Automatically updated from the main branch." \
+              --prerelease
+          fi
