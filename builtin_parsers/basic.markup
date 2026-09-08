@@ -68,6 +68,9 @@ parser div
 			return string.format('<div class="%s">%s</div>', this.arg, this.content)
 		end
 
+parser row
+	build_html <div class="row">$content</div>
+
 ## Metadata
 
 parser title
@@ -94,12 +97,12 @@ parser headings
 		lua
 		local level = string.len(this.matched_groups[2])
 		local id = (find_subparticle("id") or {}).arg or hash(this.arg)
-		return string.format('<h%d id="%s">%s</h%d>', level, id, this.arg, level)
+		return string.format('<h%d id="%s">%s</h%d>', level, id, inline(this.arg), level)
 	metadata
 		lua
 		local level = string.len(this.matched_groups[2])
 		local id = (find_subparticle("id") or {}).arg or hash(this.arg)
-		return string.format('%d;%s;%s', level, id, this.arg)
+		return string.format('%d;%s;%s', level, id, inline(this.arg))
 
 parser table_of_contents
 	build_html
