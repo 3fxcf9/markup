@@ -296,7 +296,9 @@ and evaluate_particles (reg : registry) (parent_particle : particle)
                 evaluate_parser_value reg part ~parent_particle pval
               in
               let to_replace =
-                if String.is_empty to_replace then parent_particle.html
+                if String.is_empty to_replace then
+                  Utils.inner_html parent_particle.html
+                else if to_replace = "*" then parent_particle.html
                 else to_replace
               in
               let replace_with =

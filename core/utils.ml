@@ -21,3 +21,14 @@ let html_escape s =
       | c -> Buffer.add_char b c)
     s;
   Buffer.contents b
+
+let inner_html s =
+  if String.length s = 0 || s.[0] <> '<' then s
+  else
+    match String.index_opt s '>' with
+    | None -> s
+    | Some i -> (
+        match String.rindex_opt s '<' with
+        | Some j when j > i && j + 1 < String.length s && s.[j + 1] = '/' ->
+            String.sub s (i + 1) (j - i - 1)
+        | _ -> s)

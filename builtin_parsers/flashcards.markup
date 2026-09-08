@@ -122,7 +122,7 @@ parser fc_ref
 
 parser flashcards
 	cue as_flashcard
-	aftertext lua return ""
+	aftertext *
 	metadata
 		lua
 			local env_name, title, content = parent_html:match(

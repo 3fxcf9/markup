@@ -53,7 +53,7 @@ parser class_name
 			end, 1)
 		end
 		return add_class(replaced, this.atoms[2])
-	aftertext lua return "" -- this is how to add an empty string. FIXME I guess
+	aftertext *
 
 
 parser id
@@ -74,4 +74,4 @@ parser id
 				end, 1)
 		end
 		return add_id(replaced, this.atoms[2])
-	aftertext lua return ""
+	aftertext *
