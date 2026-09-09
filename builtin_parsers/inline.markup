@@ -22,7 +22,7 @@ parser inline_strikethrough
 	aftertext pattern ~~\([^~]*\)~~
 	build_html <s>$aftertext_matched_groups[1]</s>
 parser inline_sidenote
-	aftertext pattern ((\([^~]*\)))
+	aftertext pattern ((\([^)]*\)))
 	build_html <span class="sidenote-number"><small class="sidenote">$aftertext_matched_groups[1]</small></span>
 
 Please do not change the following two parsers, as the inline replacement strategy assumes this implementation (it only replaces matches that are prefixed by a string containing an even number of backticks and an even number of dollars).
@@ -43,8 +43,7 @@ code
 parser footnotes
 	cue inline_footnotes
 	aftertext pattern \^\([1-9A-Za-z_-]+\)
-	build_html ###############
-	aa
+	build_html
 		lua
 		local i = 0
 		for j, v in ipairs(metadata["footnotes"] or {}) do
@@ -56,8 +55,7 @@ parser footnotes
 		if i > 0 then
 			return string.format('<a class="footnote-ref" id="note-ref-%d" href="#note-%d"><sup>[%d]</sup></a>', i, i, i)
 		else
-			local i = #metadata["footnotes"]
-			return string.format('<a class="footnote-ref" id="note-ref-%d" href="#note-%d"><sup>[%d]</sup></a>', i, i, i)
+			return ""
 		end
 	metadata
 		lua

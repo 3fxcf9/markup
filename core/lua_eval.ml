@@ -55,7 +55,7 @@ let html_escape_lua ls =
 
 let hash ls =
   let input = LuaL.checkstring ls 1 in
-  input |> Hashtbl.hash |> string_of_int |> Lua.pushstring ls;
+  input |> Utils.hash |> Lua.pushstring ls;
   1
 
 (* Custom functions end *)
@@ -224,7 +224,6 @@ let eval_lua ?markup_parser ?inline_parser ~particle_file_path (reg : registry)
         Lua.setglobal ls "path_relative_to_file";
         run_chunk ls globals;
         run_chunk ~nresults:1 ls lua_func;
-
         match Lua.tostring ls (-1) with
         | Some s -> s
         | None -> failwith "Expected a string return value"

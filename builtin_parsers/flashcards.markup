@@ -145,7 +145,7 @@ parser flashcards
 				'</div>%s*$'
 			)
 			if this.arg ~= "" then
-				title = this.arg
+				title = inline(this.arg)
 			end
 			if content ~= nil then
 				return string.format('%s<div class="flashcard"><div class="flashcard-front">%s</div><div class="flashcard-back">%s</div></div>', parent_html, title, content:match("^%s*(.-)%s*$"))

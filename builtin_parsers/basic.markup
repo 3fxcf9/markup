@@ -179,9 +179,15 @@ parser math
 ## Lists
 
 parser list
-	cue -
+	cue +
 	build_html <li>$content</li>
 	list_wrap <ul>$elements</ul>
+	arg_as_content
+
+parser compact_list
+	cue -
+	build_html <li>$content</li>
+	list_wrap <ul class="compact">$elements</ul>
 	arg_as_content
 
 parser todo
@@ -208,3 +214,9 @@ parser svg_figures
 	build_html
 		lua
 		return '<!--'..this.matched_groups[1]..'-->' .. read_file(path_relative_to_file(this.matched_groups[1]))
+
+## Others
+
+parser question
+	cue ?
+	build_html <p><strong><em>$arg</em></strong></p>

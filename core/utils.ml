@@ -1,3 +1,7 @@
+let hash =
+  let open Types in
+  Digest.string >> Digest.to_hex
+
 (** [all_matching_groups s] is the list of all groups (including group 0, the
     entire match) from the most recent successful regex match on [s]. *)
 let all_matching_groups (s : string) : string list =

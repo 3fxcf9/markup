@@ -183,6 +183,8 @@ let rec evaluate_parser_value
       in
 
       let markup_parser ls =
+        (* force new lua state to avoid redefinition of constants *)
+        let reg = { reg with lua_state = None } in
         let open Lua_api in
         let lines = LuaL.checkstring ls 1 |> String.split_on_char '\n' in
         Parser.parse_document reg lines
@@ -191,12 +193,14 @@ let rec evaluate_parser_value
         1
       in
       let inline_parser ls =
+        (* force new lua state to avoid redefinition of constants *)
+        let reg = { reg with lua_state = None } in
         let open Lua_api in
         LuaL.checkstring ls 1 |> String.split_on_char '\n'
+        |> List.filter (( <> ) "")
         |> List.map (fun line ->
             [ Printf.sprintf "* %s" line; "\tinline_markup" ])
-        |> List.flatten |> Parser.parse_document reg
-        |> evaluate_particles reg parent_particle
+        |> List.flatten |> Parser.parse_document reg |> evaluate_particles reg p
         |> fst |> Lua.pushstring ls;
         1
       in
@@ -274,17 +278,18 @@ and evaluate_particles (reg : registry) (parent_particle : particle)
                     if even_backticks_and_dollars_before parent_html start then begin
                       let groups = Utils.all_matching_groups parent_html in
 
-                      let parent_particle =
-                        { parent_particle with html = parent_html }
-                      in
+                      if String.starts_with ~prefix:"^" (List.hd groups) then
+                        Debug.log "MMM: %s" (List.hd groups);
 
-                      evaluate_metadata reg part ~parent_particle metadata
+                      let part = { part with html = parent_html } in
+                      evaluate_metadata reg part ~parent_particle:part metadata
                         ~aftertext_matched_groups:(Some groups)
                         ~replaced_text:(Some (List.hd groups));
 
-                      evaluate_parser_value reg part ~parent_particle build_html
-                        ~aftertext_matched_groups:(Some groups)
+                      evaluate_parser_value reg part ~parent_particle:part
+                        build_html ~aftertext_matched_groups:(Some groups)
                         ~replaced_text:(Some (List.hd groups))
+                      (* "AA" *)
                     end
                     else Str.matched_string parent_html)
                   parent_particle.html
@@ -341,10 +346,7 @@ and evaluate_particles (reg : registry) (parent_particle : particle)
             |> List.filter (fun s -> Option.is_some s.parser.aftertext)
             |> List.fold_left
                  (fun acc p ->
-                   evaluate_particles reg
-                     { parent_particle with html = acc }
-                     [ p ]
-                   |> fst)
+                   evaluate_particles reg { part with html = acc } [ p ] |> fst)
                  html
           in
           { particle_with_content with html = html' }
