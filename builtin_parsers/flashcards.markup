@@ -102,6 +102,16 @@ parser flashcards
 				'<div%s+class="environment%-title">%s*(.-)%s*</div>(.-)' ..
 				'</div>%s*$'
 			)
+			-- No title
+			if not env_name then
+					env_name, content = parent_html:match(
+							'<div%s+class="environment%s+environment%-([^"]+)"%s*>(.-)' ..
+							'</div>%s*$'
+					)
+			end
+			if this.arg ~= "" then
+				title = inline(this.arg)
+			end
 			if content ~= nil then
 				local reversed = find_subparticle("flashcard_reversed_flag") ~= nil and 'true' or 'false'
 				return string.format('%s	%s	%s', title, content:match("^%s*(.-)%s*$"), reversed)
@@ -116,6 +126,13 @@ parser flashcards
 				'<div%s+class="environment%-title">%s*(.-)%s*</div>(.-)' ..
 				'</div>%s*$'
 			)
+			-- No title
+			if not env_name then
+					env_name, content = parent_html:match(
+							'<div%s+class="environment%s+environment%-([^"]+)"%s*>(.-)' ..
+							'</div>%s*$'
+					)
+			end
 			if this.arg ~= "" then
 				title = inline(this.arg)
 			end

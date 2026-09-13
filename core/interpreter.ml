@@ -260,40 +260,70 @@ and evaluate_particles (reg : registry) (parent_particle : particle)
         } as part -> (
           match aft with
           | `Pattern pattern -> begin
-              (* Only replace if after an even number of backticks to skip code. Sadly hardcoded. *)
-              let even_backticks_and_dollars_before str pos =
-                let count = ref 0 in
-                let count' = ref 0 in
-                for i = 0 to pos - 1 do
-                  if str.[i] = '`' then incr count;
-                  if str.[i] = '$' then incr count'
-                done;
-                !count mod 2 = 0 && !count' mod 2 = 0
+              let replace_math_and_code s =
+                let n = String.length s in
+                let buf = Buffer.create n in
+                let rec loop i marker =
+                  if i >= n then Buffer.contents buf
+                  else
+                    match (marker, s.[i]) with
+                    | None, (('$' | '`') as m) ->
+                        Buffer.add_char buf m;
+                        loop (i + 1) (Some s.[i])
+                    | Some delim, c when c = delim ->
+                        Buffer.add_char buf delim;
+                        loop (i + 1) None
+                    | None, _ ->
+                        Buffer.add_char buf s.[i];
+                        loop (i + 1) None
+                    | Some _, _ ->
+                        Buffer.add_char buf ' ';
+                        loop (i + 1) marker
+                in
+                loop 0 None
               in
+
+              (* Replacement strategy:
+                  - create a masked string, in which $…$ and `…` are replaced by spaces
+                  - match pattern against this string
+                  - replace the matched segments in the original string *)
+              let parent_html = parent_particle.html in
+              let masked_html = replace_math_and_code parent_html in
+              let re = Str.regexp pattern in
+
+              let rec loop pos acc =
+                try
+                  let start = Str.search_forward re masked_html pos in
+                  let stop = Str.match_end () in
+
+                  let replacement =
+                    let groups = Utils.all_matching_groups parent_html in
+                    let part = { part with html = parent_html } in
+
+                    evaluate_metadata reg part ~parent_particle:part metadata
+                      ~aftertext_matched_groups:(Some groups)
+                      ~replaced_text:(Some (List.hd groups));
+
+                    evaluate_parser_value reg part ~parent_particle:part
+                      build_html ~aftertext_matched_groups:(Some groups)
+                      ~replaced_text:(Some (List.hd groups))
+                  in
+
+                  loop stop ((start, stop, replacement) :: acc)
+                with Not_found -> acc
+              in
+              let matches = loop 0 [] in
               let html =
-                Str.global_substitute (Str.regexp pattern)
-                  (fun parent_html ->
-                    let start = Str.match_beginning () in
-
-                    if even_backticks_and_dollars_before parent_html start then begin
-                      let groups = Utils.all_matching_groups parent_html in
-
-                      if String.starts_with ~prefix:"^" (List.hd groups) then
-                        Debug.log "MMM: %s" (List.hd groups);
-
-                      let part = { part with html = parent_html } in
-                      evaluate_metadata reg part ~parent_particle:part metadata
-                        ~aftertext_matched_groups:(Some groups)
-                        ~replaced_text:(Some (List.hd groups));
-
-                      evaluate_parser_value reg part ~parent_particle:part
-                        build_html ~aftertext_matched_groups:(Some groups)
-                        ~replaced_text:(Some (List.hd groups))
-                      (* "AA" *)
-                    end
-                    else Str.matched_string parent_html)
-                  parent_particle.html
+                List.fold_left
+                  (fun acc (start, stop, replacement) ->
+                    let prefix = String.sub acc 0 start in
+                    let suffix =
+                      String.sub acc stop (String.length acc - stop)
+                    in
+                    prefix ^ replacement ^ suffix)
+                  parent_html matches
               in
+
               { part with html }
             end
           | `ParserValue pval -> begin
