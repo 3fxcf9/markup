@@ -90,34 +90,6 @@ parser flashcard_back
 parser flashcard_reversed_flag
 	cue reversed
 
-A tsv file containing the flashcards found in the document can then be generated with the following parser:
-
-parser generate_flashcards_tsv
-	build_html
-		lua
-		local rows = metadata["flashcards"] or {}
-		local front = {}
-		local back = {}
-		local reversed = {}
-		for _, row in ipairs(rows) do
-				local a, b, c = row:match("^(.-)\t(.-)\t(.*)$")
-				if a and b and c then
-						table.insert(front, a)
-						table.insert(back, b)
-						table.insert(reversed, c)
-				end
-		end
-		-- generate tsv
-		local tsv_lines = {}
-		for i = 1, #front do
-				tsv_lines[#tsv_lines + 1] = front[i] .. "\t" .. back[i] .. "\t" .. reversed[i]
-		end
-		local contents = table.concat(tsv_lines, "\n")
-		-- write the file
-		local output_path = dirname(file_path) .. "/flashcards.tsv"
-		write_file(output_path, contents)
-		return "" -- this is how to execute code without producing HTML
-
 parser fc_ref
 
 parser flashcards
@@ -153,6 +125,71 @@ parser flashcards
 				return parent_html
 			end
 
+A json file containing the flashcards found in the project can then be generated next to a specific with the following parser in that file:
 
+parser generate_project_flashcards_json
+	build_html
+		lua
+		function json(v)
+			local t = type(v)
+			if t == "nil" then return "null" end
+			if t == "boolean" then return tostring(v) end
+			if t == "number" then return tostring(v) end
+			if t == "string" then
+				return '"' .. v:gsub('[\\"%z\1-\31]', {
+					['"'] = '\\"', ['\\'] = '\\\\',
+					['\n'] = '\\n', ['\r'] = '\\r',
+					['\t'] = '\\t', ['\b'] = '\\b', ['\f'] = '\\f'
+				}) .. '"'
+			end
+			if t == "table" then
+				local a, r, n = true, {}, 0
+				for k, x in pairs(v) do
+					if type(k) ~= "number" or k < 1 or k ~= math.floor(k) then
+						a = false
+						break
+					end
+					n = math.max(n, k)
+				end
+				if a then
+					for i = 1, n do
+						if v[i] == nil then a = false break end
+						r[i] = json(v[i])
+					end
+					if a then return "[" .. table.concat(r, ",") .. "]" end
+				end
+				for k, x in pairs(v) do
+					assert(type(k) == "string", "JSON keys must be strings")
+					r[#r + 1] = json(k) .. ":" .. json(x)
+				end
+				return "{" .. table.concat(r, ",") .. "}"
+			end
+			error("cannot encode " .. t)
+		end
 
+		local flashcards = {}
+		for _,path in ipairs(external_metadata_files()) do
+			local meta = external_metadata[path] or {}
+			if meta.title ~= nil then
+				local macros = read_file(dirname(path) .. '/snippets.js') or ""
+				local chap = {cards = {}, macros=macros}
+				local rows = meta["flashcards"] or {}
+				for _, row in ipairs(rows) do
+					local a, b, c = row:match("^(.-)\t(.-)\t(.*)$")
+					if a and b and c then
+						table.insert(chap.cards, {hash=hash(a), front=a, back=b, reversed=c})
+					end
+				end
+				if next(chap.cards) ~= nil then
+					local subject = ((external_metadata[dirname(dirname(path)) .. '/index.markup'] or {}).title or {})[1]
+					if subject ~= nil then
+						flashcards[subject] = flashcards[subject] or {}
+						flashcards[subject].chapters = flashcards[subject].chapters or {}
+						flashcards[subject].chapters[meta.title[1]] = chap
+					end
+				end
+			end
+		end
+		write_file(path_relative_to_toplevel("flashcards.json"), json(flashcards))
+		return ""
 

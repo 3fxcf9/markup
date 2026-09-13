@@ -120,6 +120,10 @@ let set_lazy_global ls (name : string) (index_fn : Lua.state -> int) : unit =
   ignore (Lua.setmetatable ls (-2));
   Lua.setglobal ls name
 
+let get_external_metadata_file_list reg ls =
+  List.map fst reg.external_metadata |> push_string_array ls;
+  1
+
 let lua_error_css =
   {|<style>
 .lua-error::before {
@@ -192,6 +196,8 @@ let get_state ?markup_parser ?inline_parser (reg : registry) : Lua.state =
       (* [metadata] and [external_metadata] are exposed to Lua as read-only tables with an [__index] metamethod, so only the key the lua code reads are uilt. This avoid parsing it on every evaluation (huge optimization for large projects). *)
       set_lazy_global ls "metadata" (metadata_index reg);
       set_lazy_global ls "external_metadata" (external_metadata_index reg);
+      Lua.pushocamlfunction ls (get_external_metadata_file_list reg);
+      Lua.setglobal ls "external_metadata_files";
 
       run_chunk ls
         {|
