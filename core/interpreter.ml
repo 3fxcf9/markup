@@ -270,6 +270,9 @@ and evaluate_particles (reg : registry) (parent_particle : particle)
                     | None, (('$' | '`') as m) ->
                         Buffer.add_char buf m;
                         loop (i + 1) (Some s.[i])
+                    | None, '[' ->
+                        Buffer.add_char buf '[';
+                        loop (i + 1) (Some ']')
                     | Some delim, c when c = delim ->
                         Buffer.add_char buf delim;
                         loop (i + 1) None

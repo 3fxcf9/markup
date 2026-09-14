@@ -27,7 +27,7 @@ parser named_environment
 
 The `generic_environment` parser matches environments that do not require such a label.
 parser generic_environment
-	pattern \(\(proof\)\|\(method\)\|\(rem\)\|\(example\)\|\(recall\)\)\b
+	pattern \(\(proof\)\|\(method\)\|\(rem\)\|\(example\)\|\(recall\)\|\(callout\)\|\(env\)\)\b
 	build_html
 		lua
 		local env_name = ({
@@ -36,6 +36,8 @@ parser generic_environment
 			rem="remark",
 			example="example",
 			recall="recall",
+			env="generic",
+			callout="callout",
 		})[this.matched_groups[2]]
 		if this.arg == "" then
 			return string.format('<div class="environment environment-%s">%s</div>', env_name, this.content)

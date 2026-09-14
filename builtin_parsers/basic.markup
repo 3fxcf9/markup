@@ -164,17 +164,34 @@ parser hrule
 	build_html <hr/>
 
 parser code
-	cue code
 	raw
 	build_html
 		lua
 		local attr = this.arg == '' and '' or string.format(' class="lang-%s"', this.arg)
 		return string.format('<pre><code%s>%s</code></pre>', attr, escape(this.content))
 
-parser math
+parser equation
 	cue math
 	raw
-	build_html <code class="katex-display">$content</code>
+	build_html
+		lua
+		-- metadata already evaluated
+		local number = #metadata.equation
+		local id = metadata.equation[number]
+		local math = this.content:gsub("\\eqref{([^}]*)}", function(ref)
+			for j,ident in ipairs(metadata.equation or {}) do
+				if ident == ref then
+					return string.format('\\href{#%s}{(%d)}', ident, j)
+				end
+			end
+			return string.format('\\eqref{%s}', ref)
+		end)
+		return string.format('<div id="%s" class="equation"><code class="katex-display">%s</code><div class="equation-label"><a href="#%s">(%s)</a></div></div>', id, math, id, number)
+	metadata
+		lua
+		local id = this.arg ~= "" and this.arg or hash(this.content) -- TODO: Add line number to hash
+		return id
+
 
 ## Lists
 

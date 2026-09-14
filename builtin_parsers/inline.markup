@@ -25,6 +25,19 @@ parser inline_sidenote
 	aftertext pattern ((\([^)]*\)))
 	build_html <span class="sidenote-number"><small class="sidenote">$aftertext_matched_groups[1]</small></span>
 
+// only equations for now
+parser internal_reference
+	aftertext pattern \[\([^]]*\)\]
+	build_html
+		lua
+		print(aftertext_matched_groups[1])
+		for j,id in ipairs(metadata.equation or {}) do
+			if id == aftertext_matched_groups[2] then
+				return string.format('<a href="#%s">(%d)</a>', id, j)
+			end
+		end
+		return aftertext_matched_groups[1]
+
 Please do not change the following two parsers, as the inline replacement strategy assumes this implementation (it only replaces matches that are prefixed by a string containing an even number of backticks and an even number of dollars).
 parser inline_math
 	aftertext pattern \$\([^$]*\)\$
@@ -99,6 +112,7 @@ parser inline_markup
 		inline_underline
 		inline_strikethrough
 		inline_sidenote
+		internal_reference
 		inline_footnotes
 		// The two following parsers must be last
 		inline_math
