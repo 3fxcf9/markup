@@ -207,6 +207,12 @@ parser compact_list
 	list_wrap <ul class="compact">$elements</ul>
 	arg_as_content
 
+parser list
+	cue ~
+	build_html <li>$content</li>
+	list_wrap <ol class="paren-roman-list">$elements</ol>
+	arg_as_content
+
 parser todo
 	pattern \[\(x\|X?\)\]
 	build_html
@@ -236,4 +242,4 @@ parser svg_figures
 
 parser question
 	cue ?
-	build_html <p><strong><em>$arg</em></strong></p>
+	build_html lua return string.format('<p><strong><em>%s</em></strong></p>', inline(this.arg))
