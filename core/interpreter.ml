@@ -93,7 +93,11 @@ let replace_external_metadata_access (reg : registry) (s : string) : string =
           |> Fs.normalize_path
         in
         let key = Str.matched_group 2 matched in
-        reg.external_metadata |> List.assoc file |> List.assoc key)
+        let metadata =
+          let* file_metadata = reg.external_metadata |> List.assoc_opt file in
+          List.assoc_opt key file_metadata
+        in
+        Option.value ~default:"" metadata)
       s
   with _ -> s
 

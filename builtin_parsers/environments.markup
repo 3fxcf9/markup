@@ -21,6 +21,8 @@ parser named_environment
 			return string.format('<div class="environment environment-%s"><div class="environment-title">%s</div>%s</div>', env_name, title, this.content)
 		elseif env_name == "theorem" and #this.arg >= 10 and string.sub(this.arg, 1, 10):lower() == "théorème" then
 			return string.format('<div class="environment environment-%s"><div class="environment-title">%s</div>%s</div>', env_name, inline(this.arg), this.content)
+		elseif env_name == "lemma" and #this.arg >= 5 and string.sub(this.arg, 1, 5):lower() == "lemme" then
+			return string.format('<div class="environment environment-%s"><div class="environment-title">%s</div>%s</div>', env_name, inline(this.arg), this.content)
 		else
 			return string.format('<div class="environment environment-%s"><div class="environment-title">%s — %s</div>%s</div>', env_name, title, inline(this.arg), this.content)
 		end

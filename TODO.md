@@ -3,6 +3,30 @@
 - Make the tree walkable, create a getter and expose it to lua (allow this.parent.parent.children.content for example)
 - Write builtin parsers
 - optimize ?
+- Number equations with respect to sections
+  - look at the heading levels, remember last equation number, compare to current heading structure
+  - ```lua
+        function structure(headings)
+    		local counters = {}
+
+    		for _, line in ipairs(headings) do
+    			local level, id, text = line:match("^(%d+);([^;]*);(.*)$")
+    			level = tonumber(level)
+
+    			counters[level] = (counters[level] or 0) + 1
+
+    			for i = level + 1, #counters do
+    					counters[i] = 0
+    			end
+    		end
+
+    		local parts = {}
+    		for i = 1, level do
+    				parts[i] = tostring(counters[i] or 0)
+    		end
+    		return table.concat(parts, ".")
+    	end
+    ```
 
 ### Parser syntax
 
