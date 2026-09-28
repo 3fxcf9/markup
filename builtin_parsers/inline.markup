@@ -98,7 +98,7 @@ parser footnote_text
 		if i > 0 then
 			local label = ((find_subparticle("label") or {}).atoms or {})[2]
 			local js = label ~= nil and string.format('<script>document.querySelectorAll("#note-ref-%d > sup").forEach(e => e.innerText = "%s")</script>', i, label) or ""
-			return string.format('%s<p class="footnote-text" id="note-%d"><a href="#note-ref-%d">%s</a> %s</p>', js, i, i, label ~= nil and label or '['..i..']', this.arg)
+			return string.format('%s<p class="footnote-text" id="note-%d"><a href="#note-ref-%d">%s</a> %s</p>', js, i, i, label ~= nil and label or '['..i..']', inline(this.arg))
 		else
 			return "Invalid"
 		end

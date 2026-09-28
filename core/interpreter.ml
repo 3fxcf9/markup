@@ -102,14 +102,27 @@ let replace_external_metadata_access (reg : registry) (s : string) : string =
   with _ -> s
 
 let replace_first ~substring ~new_text s =
-  let quoted = Str.quote substring in
-  let whole_word_re = Str.regexp ("\\b" ^ quoted ^ "\\b") in
-  let any_re = Str.regexp quoted in
-  try
-    ignore (Str.search_forward whole_word_re s 0);
-    Str.replace_first whole_word_re new_text s
-  with Not_found -> (
-    try Str.replace_first any_re new_text s with Not_found -> s)
+  let quoted_sub = Str.quote substring in
+  let whole_word_re = Str.regexp ("\\b" ^ quoted_sub ^ "\\b") in
+  let any_re = Str.regexp quoted_sub in
+
+  (* Use indexes to avoid escaping new_text and be safe in the case of \1, \2, … *)
+  let find_and_replace re =
+    try
+      let pos = Str.search_forward re s 0 in
+      let match_len = String.length substring in
+      let before = String.sub s 0 pos in
+      let after =
+        String.sub s (pos + match_len) (String.length s - pos - match_len)
+      in
+      Some (before ^ new_text ^ after)
+    with Not_found -> None
+  in
+
+  match find_and_replace whole_word_re with
+  | Some result -> result
+  | None -> (
+      match find_and_replace any_re with Some result -> result | None -> s)
 
 let group_consecutive_by_name (particles : particle list) =
   let rec aux groups current_group = function
