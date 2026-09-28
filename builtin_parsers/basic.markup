@@ -207,10 +207,16 @@ parser compact_list
 	list_wrap <ul class="compact">$elements</ul>
 	arg_as_content
 
-parser list
+parser roman_list
 	cue ~
 	build_html <li>$content</li>
 	list_wrap <ol class="paren-roman-list">$elements</ol>
+	arg_as_content
+
+parser numbered_list
+	pattern [1-9]\.[ ]
+	build_html <li>$content</li>
+	list_wrap <ol>$elements</ol>
 	arg_as_content
 
 parser todo
@@ -225,7 +231,7 @@ parser todo
 ## Images
 
 parser images
-	pattern \(.*\.\([jJ][pP][eE]?[gG]\)\|\([pP][nN][gG]\)\|\([gG][iI][fF]\)\)$
+	pattern .*\.\([jJ][pP][eE]?[gG]\|[pP][nN][gG]\|[gG][iI][fF]\|[wW][eE][bB][pP]\)$
 	build_html
 		lua
 		local path = path_relative_to_file(this.matched_groups[1])

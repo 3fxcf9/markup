@@ -73,13 +73,13 @@ parser figure
 parser fold
 	build_html lua return string.format('<details><summary>%s</summary>%s</details>', this.arg == "" and "View more" or this.arg, this.content)
 
-parser answer
+parser solution
 	arg_as_content
 parser exercise
 	build_html
 		lua
-		local answer = (find_subparticle("answer") or {}).content
-		local answer_html = answer ~= nil and string.format('<details class="exercise-answer"><summary>Afficher la correction</summary>%s</div>', answer) or ''
+		local solution = (find_subparticle("solution") or {}).content
+		local solution_html = solution ~= nil and string.format('<details class="exercise-solution"><summary>Afficher la correction</summary>%s</div>', solution) or ''
 		local arg_html = this.arg ~= '' and string.format('<div class="environment-title">%s</div>', this.arg) or ''
-		return string.format('<div class="environment environment-exercise">%s%s%s</div>', arg_html, this.content, answer_html)
+		return string.format('<div class="environment environment-exercise">%s%s%s</div>', arg_html, this.content, solution_html)
 
