@@ -1,5 +1,6 @@
 ### General
 
+- Bibliography tool
 - Make the tree walkable, create a getter and expose it to lua (allow this.parent.parent.children.content for example)
 - Write builtin parsers
 - optimize ?
