@@ -7,7 +7,7 @@ open Types
 let generate output files =
   let open Printf in
   let parsers =
-    files
+    files |> List.sort String.compare
     |> List.concat_map (fun file ->
         let content =
           In_channel.with_open_bin file In_channel.input_all
