@@ -115,8 +115,8 @@ let rec parse_document (reg : registry) (lines : string list) : particle list =
           match try_parsers !(reg.parsers) line with
           | `None -> parse_document reg rest'
           | `Cue { markup = Some m; _ } ->
-              let new_lines = String.split_on_char '\n' m in
-              parse_document reg (new_lines @ rest')
+              let new_lines = String.split_on_char '\n' (String.trim m) in
+              parse_document reg (new_lines @ rest)
           | `Cue parser ->
               let atoms, subparticles = collect_subparticles parser in
               {
